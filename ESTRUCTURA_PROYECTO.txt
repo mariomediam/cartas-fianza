@@ -1,0 +1,217 @@
+================================================================================
+        SISTEMA DE GESTIÓN DE CARTAS FIANZAS - ESTRUCTURA DEL PROYECTO
+================================================================================
+
+cartas-fianza/
+│
+├── 📁 backend/                          Backend Django REST API
+│   ├── 📁 config/                       Configuración del proyecto
+│   │   ├── __init__.py
+│   │   ├── settings.py                  ⚙️  Configuración principal de Django
+│   │   ├── urls.py                      🔗 URLs principales del proyecto
+│   │   ├── wsgi.py                      🚀 WSGI para producción (Gunicorn)
+│   │   └── asgi.py                      ⚡ ASGI para aplicaciones async
+│   │
+│   ├── 📁 apps/                         Aplicaciones Django
+│   │   ├── __init__.py
+│   │   ├── 📁 bienes/                   Gestión de Bienes
+│   │   │   ├── __init__.py
+│   │   │   └── apps.py
+│   │   ├── 📁 servicios/                Gestión de Servicios
+│   │   │   ├── __init__.py
+│   │   │   └── apps.py
+│   │   ├── 📁 obras/                    Gestión de Obras
+│   │   │   ├── __init__.py
+│   │   │   └── apps.py
+│   │   ├── 📁 otros/                    Gestión de Otros
+│   │   │   ├── __init__.py
+│   │   │   └── apps.py
+│   │   └── 📁 cartas_fianzas/           Gestión de Cartas Fianzas
+│   │       ├── __init__.py
+│   │       └── apps.py
+│   │
+│   ├── 🐳 Dockerfile.dev                Docker para desarrollo
+│   ├── 🐳 Dockerfile.prod               Docker para producción
+│   ├── .dockerignore                    Archivos ignorados por Docker
+│   ├── 📋 requirements.txt              Dependencias Python
+│   ├── 🎯 manage.py                     CLI de Django
+│   └── 📖 README.md                     Documentación del backend
+│
+├── 📁 frontend/                         Frontend React 19.1
+│   ├── 📁 public/                       Archivos públicos
+│   │   ├── index.html                   🏠 Página HTML principal
+│   │   └── robots.txt                   🤖 Instrucciones para crawlers
+│   │
+│   ├── 📁 src/                          Código fuente React
+│   │   ├── App.js                       ⚛️  Componente principal
+│   │   ├── App.css                      🎨 Estilos del componente principal
+│   │   ├── index.js                     🚪 Punto de entrada de la app
+│   │   └── index.css                    🎨 Estilos globales
+│   │
+│   ├── 🐳 Dockerfile.dev                Docker para desarrollo
+│   ├── 🐳 Dockerfile.prod               Docker para producción
+│   ├── .dockerignore                    Archivos ignorados por Docker
+│   ├── 📦 package.json                  Dependencias npm y scripts
+│   └── 📖 README.md                     Documentación del frontend
+│
+├── 📁 nginx/                            Configuración Nginx (Producción)
+│   └── nginx.conf                       ⚙️  Configuración del servidor web
+│
+├── 📁 scripts/                          Scripts de automatización
+│   ├── start-dev.sh                     🚀 Iniciar desarrollo (Linux/Mac)
+│   ├── start-dev.bat                    🚀 Iniciar desarrollo (Windows)
+│   ├── create-superuser.sh              👤 Crear superusuario (Linux/Mac)
+│   ├── create-superuser.bat             👤 Crear superusuario (Windows)
+│   ├── backup-db.sh                     💾 Backup de BD (Linux/Mac)
+│   └── backup-db.bat                    💾 Backup de BD (Windows)
+│
+├── 🐳 docker-compose.dev.yml            Docker Compose para DESARROLLO
+├── 🐳 docker-compose.prod.yml           Docker Compose para PRODUCCIÓN
+│
+├── .gitignore                           🚫 Archivos ignorados por Git
+├── .env.dev.example                     📝 Variables de entorno (desarrollo)
+├── .env.prod.example                    📝 Variables de entorno (producción)
+│
+├── 📖 README.md                         📚 Documentación principal
+├── 📖 INSTALL.md                        🔧 Guía de instalación completa
+├── 📖 CONTRIBUTING.md                   🤝 Guía de contribución
+├── 📖 COMANDOS_UTILES.md                💡 Referencia rápida de comandos
+└── 📖 ESTRUCTURA_PROYECTO.txt           📋 Este archivo
+
+================================================================================
+                              TECNOLOGÍAS UTILIZADAS
+================================================================================
+
+Backend:
+  ✅ Django 5.2
+  ✅ Django REST Framework 3.15.2
+  ✅ PostgreSQL 18
+  ✅ Gunicorn 23.0.0
+  ✅ WhiteNoise 6.8.2
+
+Frontend:
+  ✅ React 19.1
+  ✅ Axios 1.7.9
+  ✅ React Router DOM 7.1.3
+
+DevOps:
+  ✅ Docker
+  ✅ Docker Compose
+  ✅ Nginx (Producción)
+
+================================================================================
+                              SERVICIOS DOCKER
+================================================================================
+
+DESARROLLO (docker-compose.dev.yml):
+  🐘 db         - PostgreSQL 18 (Puerto 5432)
+  🐍 backend    - Django + DRF (Puerto 8000)
+  ⚛️  frontend   - React Dev Server (Puerto 3000)
+
+PRODUCCIÓN (docker-compose.prod.yml):
+  🐘 db         - PostgreSQL 18 (Red interna)
+  🐍 backend    - Django + Gunicorn (Red interna)
+  ⚛️  frontend   - React Build (Red interna)
+  🌐 nginx      - Nginx Reverse Proxy (Puerto 80/443)
+
+================================================================================
+                           COMANDOS DE INICIO RÁPIDO
+================================================================================
+
+DESARROLLO:
+
+  Windows:
+    scripts\start-dev.bat
+
+  Linux/Mac:
+    ./scripts/start-dev.sh
+
+PRODUCCIÓN:
+
+  docker-compose -f docker-compose.prod.yml up -d --build
+  docker-compose -f docker-compose.prod.yml exec backend python manage.py migrate
+  docker-compose -f docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
+  docker-compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+
+================================================================================
+                                 URLs LOCALES
+================================================================================
+
+  🌐 Frontend:           http://localhost:3000
+  🔌 Backend API:        http://localhost:8000/api/
+  🔐 Django Admin:       http://localhost:8000/admin/
+  📡 API Root:           http://localhost:8000/api/
+  🔑 API Auth:           http://localhost:8000/api-auth/
+
+================================================================================
+                              PRÓXIMOS PASOS
+================================================================================
+
+1. ✅ Estructura del proyecto creada
+2. ✅ Dockerfiles configurados (dev y prod)
+3. ✅ Docker Compose configurado
+4. ✅ Configuración básica de Django
+5. ✅ Aplicación React básica creada
+6. ✅ Scripts de automatización creados
+7. ✅ Documentación completa generada
+
+PENDIENTE (según tus necesidades):
+
+8. ⏳ Definir modelos en las apps Django
+9. ⏳ Crear serializers para la API
+10. ⏳ Crear views y viewsets
+11. ⏳ Configurar URLs de cada app
+12. ⏳ Desarrollar componentes React
+13. ⏳ Implementar autenticación
+14. ⏳ Diseñar interfaz de usuario
+15. ⏳ Crear formularios
+16. ⏳ Agregar validaciones
+17. ⏳ Implementar lógica de negocio
+
+================================================================================
+                            ARCHIVOS DE CONFIGURACIÓN
+================================================================================
+
+Para iniciar el sistema, necesitas crear los archivos de variables de entorno:
+
+  Windows PowerShell:
+    Copy-Item .env.dev.example .env.dev
+
+  Linux/Mac/Git Bash:
+    cp .env.dev.example .env.dev
+
+Los archivos .env.dev.example y .env.prod.example contienen todas las
+variables necesarias con valores por defecto que funcionan para desarrollo.
+
+================================================================================
+                           SOPORTE Y DOCUMENTACIÓN
+================================================================================
+
+📖 Documentación Principal:     README.md
+🔧 Guía de Instalación:          INSTALL.md
+🤝 Guía de Contribución:         CONTRIBUTING.md
+💡 Comandos Útiles:              COMANDOS_UTILES.md
+🔧 Backend:                      backend/README.md
+⚛️  Frontend:                    frontend/README.md
+
+Para más ayuda:
+  - Django: https://docs.djangoproject.com/
+  - React: https://react.dev/
+  - Docker: https://docs.docker.com/
+
+================================================================================
+                          ¡PROYECTO LISTO PARA USAR!
+================================================================================
+
+El sistema está completamente configurado y listo para que comiences a
+desarrollar tus modelos, vistas y componentes personalizados.
+
+Todos los archivos Docker están listos para funcionar tanto en desarrollo
+como en producción.
+
+¡Feliz desarrollo! 🚀
+
+================================================================================
+
+
+

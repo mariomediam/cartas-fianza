@@ -1,0 +1,77 @@
+El sistema permitirá gestionar objetos de garantía como por ejemplo bienes, servicios, obras, etc. y sus cartas fianza. Cada objeto de garantía puede tener una o varias cartas (Adelanto de materiales, adelanto directo, etc) y cada carta tiene un historial (emisión, renovación, devolución, etc.)
+
+Crea los modelos en Django, además ten en cuenta:
+- Crea las tablas y columnas en ingles utilizando buenas practicas para los nombres
+- Para cada tabla agrega las columnas para registrar el usuario y fecha en que se registro la información.
+
+Tabla: Objeto de garantía
+- Id Objeto de garantía(primary key)
+- Descripción nvarchar(512) ejemplo MANTENIMIENTO DE VIAS Y DE LA RED DE SEMAFOROS LOCAL
+- CUI varchar(10)
+
+Tabla: Tipo de carta
+- Id tipo de carta (primary key)
+- Descripción varchar(50) Ejemplo Adelanto de materiales, adelanto directo
+
+Tabla: Entidad financiera
+- Id entidad financiera (primary key)
+- Descripción varchar(50) Ejemplo SCOTIABANK PERU, NACION
+
+Tabla: Contratista
+- Id contratista (primary key)
+- Razón social / Nombre
+- Ruc
+
+Tabla: Estado de garantía
+- Id estado de garantía (primary key)
+- Descripción varchar(50) Ejemplo Emisión, renovación, devolución
+
+Tabla: Tipo de moneda
+- Id tipo de moneda (primary key)
+- Descripción varchar(50) Ejemplo Nuevos soles, dólares
+
+Tabla: Garantías
+- Id garantía (primary key)
+- Id objeto de garantía (FK a tabla objeto de garantía)
+- Id tipo de carta (FK a tabla tipo de carta)
+- Id contratista (FK A tabla contratista)
+
+Tabla: Historial de Garantías
+- Id historial (primary key)
+- Id garantía (FK a tabla garantías)
+- Id estado de garantía (FK  a tabla estado de garantías)
+- Número de carta varchar(50) Ejemplo 010079913-000
+- Id entidad financiera (FK a entidad financiera)
+- Dirección de entidad financiera varchar(50)
+- Fecha de emisión (date)
+- Inicio de vigencia (date)
+- Fin de vigencia (date)
+- Id tipo de moneda (FK a tabla Tipo de moneda)
+- Monto (decimal(18,2))
+- Documento de referencia varchar(50) Ejemplo INFORME 3595-2008-DO-OI/MPP 30.09.08
+- Comentarios varchar(1024) Ejemplo ADS 016-2008-CEP/MPP-PRIMERA CONVOCATORIA  40% VALORIZACION 02 SE AMORTIZA AL 100 % LOS ADELANTOS OTORGADOS H/A 016301 13.11.08 S/. 34,023.68
+
+Tabla: Archivos
+- Id Archivo
+- Id historial (FK a tabla Historial de garantías)
+- Nombre de archivo varchar(128)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
