@@ -1,4 +1,4 @@
-El sistema permitirá gestionar objetos de garantía como por ejemplo bienes, servicios, obras, etc. y sus cartas fianza. Cada objeto de garantía puede tener una o varias cartas (Adelanto de materiales, adelanto directo, etc) y cada carta tiene un historial (emisión, renovación, devolución, etc.)
+El sistema permitirá gestionar objetos de garantía y sus cartas fianza. Cada objeto de garantía puede tener una o varias cartas (Adelanto de materiales, adelanto directo, etc) y cada carta tiene un historial (emisión, renovación, devolución, etc.)
 
 Crea los modelos en Django, además ten en cuenta:
 - Crea las tablas y columnas en ingles utilizando buenas practicas para los nombres

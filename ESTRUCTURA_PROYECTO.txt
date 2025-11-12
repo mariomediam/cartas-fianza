@@ -14,18 +14,6 @@ cartas-fianza/
 │   │
 │   ├── 📁 apps/                         Aplicaciones Django
 │   │   ├── __init__.py
-│   │   ├── 📁 bienes/                   Gestión de Bienes
-│   │   │   ├── __init__.py
-│   │   │   └── apps.py
-│   │   ├── 📁 servicios/                Gestión de Servicios
-│   │   │   ├── __init__.py
-│   │   │   └── apps.py
-│   │   ├── 📁 obras/                    Gestión de Obras
-│   │   │   ├── __init__.py
-│   │   │   └── apps.py
-│   │   ├── 📁 otros/                    Gestión de Otros
-│   │   │   ├── __init__.py
-│   │   │   └── apps.py
 │   │   └── 📁 cartas_fianzas/           Gestión de Cartas Fianzas
 │   │       ├── __init__.py
 │   │       └── apps.py

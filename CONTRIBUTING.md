@@ -168,7 +168,7 @@ Ejemplos:
 ```
 feat: agregar modelo de Cartas Fianzas
 
-fix: corregir cálculo de precio total en Bienes
+fix: corregir cálculo de precio total en Cartas Fianzas
 
 docs: actualizar README con nuevas instrucciones
 ```

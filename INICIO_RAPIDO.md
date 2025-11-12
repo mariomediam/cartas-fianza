@@ -66,11 +66,7 @@ Una vez que los contenedores estén corriendo (espera unos 30-60 segundos):
 - Django REST Framework para APIs
 - PostgreSQL 18 como base de datos
 - Estructura de apps preparada:
-  - `bienes/` - Para gestión de bienes
-  - `servicios/` - Para gestión de servicios
-  - `obras/` - Para gestión de obras
-  - `otros/` - Para otros items
-  - `cartas_fianzas/` - Para cartas fianzas
+  - `cartas_fianzas/` - Para gestión de cartas fianzas
 
 ### ✅ Frontend (React)
 - React 19.1 configurado

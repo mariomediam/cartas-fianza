@@ -13,6 +13,7 @@ router = routers.DefaultRouter()
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('api/', include('apps.cartas_fianzas.urls')),
     path('api-auth/', include('rest_framework.urls')),
 ]
 

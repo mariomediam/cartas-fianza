@@ -145,7 +145,7 @@ docker-compose -f docker-compose.dev.yml exec backend python manage.py collectst
 docker-compose -f docker-compose.dev.yml exec backend python manage.py test
 
 # Ejecutar tests de una app específica
-docker-compose -f docker-compose.dev.yml exec backend python manage.py test apps.bienes
+docker-compose -f docker-compose.dev.yml exec backend python manage.py test apps.cartas_fianzas
 
 # Ejecutar con verbosidad
 docker-compose -f docker-compose.dev.yml exec backend python manage.py test --verbosity=2

@@ -12,10 +12,6 @@ backend/
 │   ├── wsgi.py          # WSGI para producción
 │   └── asgi.py          # ASGI para async
 ├── apps/                # Aplicaciones Django
-│   ├── bienes/          # App para gestión de bienes
-│   ├── servicios/       # App para gestión de servicios
-│   ├── obras/           # App para gestión de obras
-│   ├── otros/           # App para otros items
 │   └── cartas_fianzas/  # App para cartas fianzas
 ├── Dockerfile.dev       # Dockerfile para desarrollo
 ├── Dockerfile.prod      # Dockerfile para producción
@@ -119,7 +115,7 @@ Los archivos subidos por usuarios se guardan en `/app/media/`
 docker-compose -f docker-compose.dev.yml exec backend python manage.py test
 
 # Ejecutar tests de una app específica
-docker-compose -f docker-compose.dev.yml exec backend python manage.py test apps.bienes
+docker-compose -f docker-compose.dev.yml exec backend python manage.py test apps.cartas_fianzas
 
 # Con verbosidad
 docker-compose -f docker-compose.dev.yml exec backend python manage.py test --verbosity=2

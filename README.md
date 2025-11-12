@@ -1,6 +1,6 @@
 # Sistema de Gestión de Cartas Fianzas
 
-Sistema web para la gestión de Bienes, Servicios, Obras, Otros y sus cartas fianzas.
+Sistema web para la gestión de cartas fianzas.
 
 ## Tecnologías
 
@@ -134,10 +134,6 @@ cartas-fianza/
 │   │   ├── wsgi.py              # WSGI para producción
 │   │   └── asgi.py              # ASGI para async
 │   ├── apps/                    # Aplicaciones Django
-│   │   ├── bienes/              # Gestión de bienes
-│   │   ├── servicios/           # Gestión de servicios
-│   │   ├── obras/               # Gestión de obras
-│   │   ├── otros/               # Otros items
 │   │   └── cartas_fianzas/      # Cartas fianzas
 │   ├── Dockerfile.dev           # Docker para desarrollo
 │   ├── Dockerfile.prod          # Docker para producción
@@ -172,10 +168,6 @@ cartas-fianza/
 ## Características del Sistema
 
 - 🔐 **Autenticación y Autorización**: Sistema completo de usuarios
-- 📦 **Gestión de Bienes**: Administra bienes con sus cartas fianzas
-- 🛠️ **Gestión de Servicios**: Control de servicios contratados
-- 🏗️ **Gestión de Obras**: Seguimiento de obras y proyectos
-- 📋 **Gestión de Otros**: Categoría flexible para otros items
 - 📄 **Gestión de Cartas Fianzas**: Sistema completo de cartas fianzas
 - 🎨 **Panel de Administración**: Interfaz amigable para gestión
 - 🔍 **API REST**: API completa con filtros, búsqueda y paginación
