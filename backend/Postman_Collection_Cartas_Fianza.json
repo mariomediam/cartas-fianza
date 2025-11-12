@@ -1,0 +1,660 @@
+{
+	"info": {
+		"_postman_id": "cartas-fianza-api",
+		"name": "Cartas Fianza API",
+		"description": "Colección completa para la API de Cartas Fianza con ejemplos de todos los endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "0. Autenticación",
+			"item": [
+				{
+					"name": "Login - Obtener Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Guardar el token automáticamente",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"    pm.environment.set(\"user_id\", jsonData.user_id);",
+									"    console.log(\"Token guardado: \" + jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"test_user\",\n    \"password\": \"testpass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login", ""]
+						},
+						"description": "Obtiene el token de autenticación. El token se guarda automáticamente en la variable de entorno."
+					},
+					"response": []
+				},
+				{
+					"name": "User Info",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me", ""]
+						},
+						"description": "Obtiene información del usuario autenticado"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout/",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout", ""]
+						},
+						"description": "Cierra sesión e invalida el token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. Catálogos - Listar",
+			"item": [
+				{
+					"name": "Listar Objetos de Garantía",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/warranty-objects/",
+							"host": ["{{base_url}}"],
+							"path": ["warranty-objects", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Tipos de Carta",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/letter-types/",
+							"host": ["{{base_url}}"],
+							"path": ["letter-types", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Contratistas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/contractors/",
+							"host": ["{{base_url}}"],
+							"path": ["contractors", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Estados de Garantía",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/warranty-statuses/",
+							"host": ["{{base_url}}"],
+							"path": ["warranty-statuses", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Entidades Financieras",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/financial-entities/",
+							"host": ["{{base_url}}"],
+							"path": ["financial-entities", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Tipos de Moneda",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/currency-types/",
+							"host": ["{{base_url}}"],
+							"path": ["currency-types", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Garantías (Warranties)",
+			"item": [
+				{
+					"name": "Listar Garantías",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/warranties/?ordering=-created_at",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", ""],
+							"query": [
+								{
+									"key": "ordering",
+									"value": "-created_at",
+									"description": "Ordenar por más recientes primero"
+								},
+								{
+									"key": "search",
+									"value": "CONSTRUCCION",
+									"disabled": true,
+									"description": "Buscar en descripción, CUI, razón social, etc."
+								},
+								{
+									"key": "contractor",
+									"value": "1",
+									"disabled": true,
+									"description": "Filtrar por contratista"
+								}
+							]
+						},
+						"description": "Lista todas las garantías con su historial completo"
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Garantía por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/warranties/1/",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", "1", ""]
+						},
+						"description": "Obtiene una garantía específica con todo su historial"
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Garantía SIN Archivos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "warranty_object",
+									"value": "1",
+									"description": "ID del objeto de garantía",
+									"type": "text"
+								},
+								{
+									"key": "letter_type",
+									"value": "1",
+									"description": "ID del tipo de carta",
+									"type": "text"
+								},
+								{
+									"key": "contractor",
+									"value": "1",
+									"description": "ID del contratista",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[warranty_status]",
+									"value": "1",
+									"description": "ID del estado",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[letter_number]",
+									"value": "010079913-100",
+									"description": "Número de carta fianza",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[financial_entity]",
+									"value": "1",
+									"description": "ID de la entidad financiera",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[financial_entity_address]",
+									"value": "Av. Larco 1301, Miraflores, Lima",
+									"description": "Dirección de la entidad",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[issue_date]",
+									"value": "2024-01-15",
+									"description": "Fecha de emisión (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[validity_start]",
+									"value": "2024-01-15",
+									"description": "Inicio de vigencia (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[validity_end]",
+									"value": "2024-12-31",
+									"description": "Fin de vigencia (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[currency_type]",
+									"value": "1",
+									"description": "ID del tipo de moneda",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[amount]",
+									"value": "50000.00",
+									"description": "Monto de la garantía",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[reference_document]",
+									"value": "CONTRATO 001-2024",
+									"description": "Documento de referencia (opcional)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[comments]",
+									"value": "Garantía de fiel cumplimiento del contrato principal",
+									"description": "Comentarios adicionales (opcional)",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/warranties/",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", ""]
+						},
+						"description": "Crea una garantía nueva SIN archivos adjuntos. Usa form-data."
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Garantía CON Archivos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "warranty_object",
+									"value": "1",
+									"description": "ID del objeto de garantía",
+									"type": "text"
+								},
+								{
+									"key": "letter_type",
+									"value": "1",
+									"description": "ID del tipo de carta",
+									"type": "text"
+								},
+								{
+									"key": "contractor",
+									"value": "1",
+									"description": "ID del contratista",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[warranty_status]",
+									"value": "1",
+									"description": "ID del estado",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[letter_number]",
+									"value": "010079913-200",
+									"description": "Número de carta fianza",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[financial_entity]",
+									"value": "1",
+									"description": "ID de la entidad financiera",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[financial_entity_address]",
+									"value": "Av. Larco 1301, Miraflores, Lima",
+									"description": "Dirección de la entidad",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[issue_date]",
+									"value": "2024-01-15",
+									"description": "Fecha de emisión (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[validity_start]",
+									"value": "2024-01-15",
+									"description": "Inicio de vigencia (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[validity_end]",
+									"value": "2024-12-31",
+									"description": "Fin de vigencia (YYYY-MM-DD)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[currency_type]",
+									"value": "1",
+									"description": "ID del tipo de moneda",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[amount]",
+									"value": "75000.00",
+									"description": "Monto de la garantía",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[reference_document]",
+									"value": "CONTRATO 002-2024",
+									"description": "Documento de referencia (opcional)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[comments]",
+									"value": "Garantía con archivos adjuntos",
+									"description": "Comentarios adicionales (opcional)",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[files][0][file_name]",
+									"value": "Carta Fianza Original",
+									"description": "Nombre descriptivo del archivo 1",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[files][0][file]",
+									"description": "⚠️ ARCHIVO PDF 1 - Cambiar TYPE a 'File' y seleccionar PDF",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "initial_history[files][1][file_name]",
+									"value": "Anexo del Contrato",
+									"description": "Nombre descriptivo del archivo 2",
+									"type": "text"
+								},
+								{
+									"key": "initial_history[files][1][file]",
+									"description": "⚠️ ARCHIVO PDF 2 - Cambiar TYPE a 'File' y seleccionar PDF",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/warranties/",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", ""]
+						},
+						"description": "Crea una garantía CON archivos PDF adjuntos.\n\n⚠️ IMPORTANTE:\n1. En Postman, para cada campo 'file', debes cambiar el TYPE de 'Text' a 'File'\n2. Luego podrás hacer click en 'Select Files' para elegir tu PDF\n3. Los archivos se guardarán como: warranty_files/ID.pdf\n\nPuedes agregar más archivos siguiendo el patrón:\n- initial_history[files][2][file_name]\n- initial_history[files][2][file]"
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Garantía",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"letter_type\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/warranties/1/",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", "1", ""]
+						},
+						"description": "Actualiza datos de la garantía (NO el historial)"
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Garantía",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/warranties/1/",
+							"host": ["{{base_url}}"],
+							"path": ["warranties", "1", ""]
+						},
+						"description": "⚠️ PRECAUCIÓN: Elimina la garantía y todo su historial y archivos (cascada)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. CRUD - Objetos de Garantía",
+			"item": [
+				{
+					"name": "Crear Objeto de Garantía",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"CONSTRUCCION DE PUENTE VEHICULAR\",\n    \"cui\": \"2345678\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/warranty-objects/",
+							"host": ["{{base_url}}"],
+							"path": ["warranty-objects", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. CRUD - Tipos de Carta",
+			"item": [
+				{
+					"name": "Crear Tipo de Carta",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Garantía por defectos\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/letter-types/",
+							"host": ["{{base_url}}"],
+							"path": ["letter-types", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. CRUD - Contratistas",
+			"item": [
+				{
+					"name": "Crear Contratista",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"business_name\": \"CONSTRUCTORA NUEVA S.A.C.\",\n    \"ruc\": \"20987654321\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/contractors/",
+							"host": ["{{base_url}}"],
+							"path": ["contractors", ""]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

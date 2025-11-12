@@ -304,8 +304,10 @@ class WarrantyFile(BaseModel):
         verbose_name='Nombre de Archivo'
     )
     file = models.FileField(
-        upload_to='warranty_files/%Y/%m/%d/',
-        verbose_name='Archivo'
+        upload_to='warranty_files/',
+        verbose_name='Archivo',
+        blank=True,
+        null=True
     )
 
     class Meta:

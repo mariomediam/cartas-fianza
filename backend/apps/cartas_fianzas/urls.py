@@ -5,7 +5,9 @@ from .views import (
     FinancialEntityViewSet, 
     ContractorViewSet, 
     WarrantyObjectViewSet,
-    WarrantyStatusViewSet
+    WarrantyStatusViewSet,
+    CurrencyTypeViewSet,
+    WarrantyViewSet
 )
 from .auth_views import LoginView, LogoutView, UserInfoView
 
@@ -18,6 +20,8 @@ router.register(r'financial-entities', FinancialEntityViewSet, basename='financi
 router.register(r'contractors', ContractorViewSet, basename='contractor')
 router.register(r'warranty-objects', WarrantyObjectViewSet, basename='warranty-object')
 router.register(r'warranty-statuses', WarrantyStatusViewSet, basename='warranty-status')
+router.register(r'currency-types', CurrencyTypeViewSet, basename='currency-type')
+router.register(r'warranties', WarrantyViewSet, basename='warranty')
 
 # URLs de la app
 urlpatterns = [

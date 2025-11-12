@@ -1,5 +1,6 @@
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     WarrantyObject,
@@ -17,7 +18,9 @@ from .serializers import (
     FinancialEntitySerializer, 
     ContractorSerializer, 
     WarrantyObjectSerializer,
-    WarrantyStatusSerializer
+    WarrantyStatusSerializer,
+    CurrencyTypeSerializer,
+    WarrantySerializer
 )
 
 
@@ -169,3 +172,90 @@ class WarrantyStatusViewSet(viewsets.ModelViewSet):
     
     # Ordenamiento por defecto
     ordering = ['description']
+
+
+class CurrencyTypeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar Tipos de Moneda
+    
+    Operaciones disponibles:
+    - GET /api/currency-types/ - Listar todos los tipos de moneda
+    - GET /api/currency-types/{id}/ - Obtener un tipo de moneda específico
+    - POST /api/currency-types/ - Crear un nuevo tipo de moneda
+    - PUT /api/currency-types/{id}/ - Actualizar un tipo de moneda
+    - PATCH /api/currency-types/{id}/ - Actualizar parcialmente un tipo de moneda
+    - DELETE /api/currency-types/{id}/ - Eliminar un tipo de moneda
+    """
+    queryset = CurrencyType.objects.all()
+    serializer_class = CurrencyTypeSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    # Campos por los que se puede filtrar
+    filterset_fields = ['description', 'code']
+    
+    # Campos por los que se puede buscar
+    search_fields = ['description', 'code', 'symbol']
+    
+    # Campos por los que se puede ordenar
+    ordering_fields = ['id', 'description', 'code', 'created_at', 'updated_at']
+    
+    # Ordenamiento por defecto
+    ordering = ['description']
+
+
+class WarrantyViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar Garantías (Cartas Fianza)
+    
+    Al crear una garantía, se debe proporcionar el primer historial en el campo 'initial_history'.
+    Este historial puede incluir archivos PDF opcionales.
+    
+    Operaciones disponibles:
+    - GET /api/warranties/ - Listar todas las garantías
+    - GET /api/warranties/{id}/ - Obtener una garantía específica con su historial
+    - POST /api/warranties/ - Crear una nueva garantía con su primer historial
+    - PUT /api/warranties/{id}/ - Actualizar una garantía
+    - PATCH /api/warranties/{id}/ - Actualizar parcialmente una garantía
+    - DELETE /api/warranties/{id}/ - Eliminar una garantía
+    """
+    queryset = Warranty.objects.all().select_related(
+        'warranty_object',
+        'letter_type',
+        'contractor',
+        'created_by',
+        'updated_by'
+    ).prefetch_related(
+        'history',
+        'history__files',
+        'history__warranty_status',
+        'history__financial_entity',
+        'history__currency_type'
+    )
+    serializer_class = WarrantySerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    # Campos por los que se puede filtrar
+    filterset_fields = [
+        'warranty_object',
+        'letter_type',
+        'contractor',
+        'warranty_object__cui'
+    ]
+    
+    # Campos por los que se puede buscar
+    search_fields = [
+        'warranty_object__description',
+        'warranty_object__cui',
+        'contractor__business_name',
+        'contractor__ruc',
+        'history__letter_number'
+    ]
+    
+    # Campos por los que se puede ordenar
+    ordering_fields = ['id', 'created_at', 'updated_at']
+    
+    # Ordenamiento por defecto (más recientes primero)
+    ordering = ['-created_at']
