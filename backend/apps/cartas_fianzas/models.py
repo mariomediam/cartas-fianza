@@ -139,6 +139,11 @@ class WarrantyStatus(BaseModel):
         verbose_name='Descripción',
         help_text='Ejemplo: Emisión, renovación, devolución'
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Activo',
+        help_text='Indica si el estado está activo para considerar en reportes de vencimiento'
+    )
 
     class Meta:
         db_table = 'warranty_statuses'

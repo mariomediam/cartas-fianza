@@ -29,8 +29,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Si el token es inválido, limpiar localStorage
+    // Solo redirigir si hay un 401 Y no estamos en la ruta de login
+    if (error.response?.status === 401 && !error.config.url.includes('/auth/login/')) {
+      // Si el token es inválido (usuario ya logueado), limpiar y redirigir
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
