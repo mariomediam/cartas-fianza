@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════════════
+         INSTRUCCIONES RÁPIDAS - AGREGAR IMÁGENES
+═══════════════════════════════════════════════════════════════
+
+✅ SISTEMA COMPILADO CORRECTAMENTE
+
+📍 ESTÁS AQUÍ:
+   C:\Mario2\Docker\cartas-fianza\frontend\public\images\
+
+🎯 QUÉ HACER:
+
+   1. Copia TUS 2 IMÁGENES en esta carpeta
+
+   2. Renómbralas exactamente así:
+      ✅ logo-unf.png              (tu logo/escudo)
+      ✅ office-background.jpg     (tu imagen de fondo)
+
+   3. Refresca tu navegador (F5)
+
+   4. ¡Listo! Las imágenes se mostrarán automáticamente
+
+═══════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANTE: Los nombres deben ser EXACTOS
+
+   Logo:         logo-unf.png
+   Fondo:        office-background.jpg
+
+   (Mayúsculas/minúsculas importan)
+   (Puedes usar .png, .jpg, o .svg)
+
+═══════════════════════════════════════════════════════════════
+
+🔍 VERIFICAR:
+
+   Logo:   http://localhost:3000/images/logo-unf.png
+   Fondo:  http://localhost:3000/images/office-background.jpg
+
+═══════════════════════════════════════════════════════════════
+
+📐 TAMAÑOS RECOMENDADOS:
+
+   Logo:   80x80 a 120x120 píxeles (formato cuadrado)
+   Fondo:  1200x800 píxeles o mayor (Full HD: 1920x1080)
+
+═══════════════════════════════════════════════════════════════
+
+✨ SI NO COPIAS LAS IMÁGENES:
+
+   - El sistema seguirá funcionando
+   - Se mostrará un logo SVG temporal
+   - El fondo será un color azul sólido
+   - Pero se verá MEJOR con tus imágenes institucionales
+
+═══════════════════════════════════════════════════════════════
+
+❓ AYUDA:
+
+   Ver: frontend\GUIA_IMAGENES_COMPLETA.md
+   O:   frontend\INSTRUCCIONES_IMAGENES.md
+
+═══════════════════════════════════════════════════════════════
+
+✅ ESTADO: Frontend compilado exitosamente - Listo para usar

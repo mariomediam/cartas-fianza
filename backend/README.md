@@ -157,4 +157,22 @@ En producción, asegúrate de:
 - ✅ Configurar CORS apropiadamente
 
 
+# ******************************
 
+Comandos importantes para recordar:
+
+Iniciar los contenedores (después de reiniciar la PC):
+cd C:\Mario2\Docker\cartas-fianzadocker-compose -f docker-compose.dev.yml up -d
+
+Detener los contenedores:
+docker-compose -f docker-compose.dev.yml down
+
+Ver el estado de los contenedores:
+docker ps
+
+Ver los logs de los servicios:
+# Todos los serviciosdocker-compose -f docker-compose.dev.yml logs -f# Solo backenddocker-compose -f docker-compose.dev.yml logs -f backend# Solo frontenddocker-compose -f docker-compose.dev.yml logs -f frontend
+
+Reiniciar un servicio específico:
+docker-compose -f docker-compose.dev.yml restart backend
+docker-compose -f docker-compose.dev.yml restart frontend

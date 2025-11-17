@@ -1,23 +1,44 @@
 import React from 'react';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import PrivateRoute from './components/PrivateRoute';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Sistema de Gestión de Cartas Fianzas</h1>
-        <p>Bienvenido al sistema de gestión de Bienes, Servicios, Obras, Otros y sus Cartas Fianzas</p>
-        <div className="status">
-          <p>✅ Frontend React 19.1 funcionando correctamente</p>
-          <p>✅ Conectado al Backend Django</p>
-          <p>✅ Base de datos PostgreSQL 18</p>
-        </div>
-      </header>
-    </div>
+    <Router>
+      {/* Toaster de Sonner para notificaciones globales */}
+      <Toaster 
+        position="top-right" 
+        expand={false}
+        richColors
+        closeButton
+        duration={4000}
+      />
+
+      <Routes>
+        {/* Ruta raíz redirige al dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Ruta de login (pública) */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Rutas protegidas */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Ruta 404 - redirige al dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
-
-
-
