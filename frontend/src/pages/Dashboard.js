@@ -1,158 +1,246 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import useAuthStore from '../store/authStore';
+import api from '../services/api';
+import Layout from '../components/Layout';
 
 const Dashboard = () => {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    vencidas: 0,
+    porVencer: 0,
+    vigentes: 0,
+  });
+  const [vencidasList, setVencidasList] = useState([]);
+  const [porVencerList, setPorVencerList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = async () => {
-    await logout();
-    toast.success('Sesión cerrada correctamente');
-    navigate('/login');
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const getUserDisplayName = () => {
-    if (user?.first_name && user?.last_name) {
-      return `${user.first_name} ${user.last_name}`;
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Obtener datos de los 3 endpoints en paralelo
+      const [vencidasRes, porVencerRes, vigentesRes] = await Promise.all([
+        api.get('/warranties/vencidas/'),
+        api.get('/warranties/por-vencer/'),
+        api.get('/warranties/vigentes/')
+      ]);
+
+      setStats({
+        vencidas: vencidasRes.data.count,
+        porVencer: porVencerRes.data.count,
+        vigentes: vigentesRes.data.count,
+      });
+
+      setVencidasList(vencidasRes.data.results || []);
+      setPorVencerList(porVencerRes.data.results || []);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      toast.error('Error al cargar las estadísticas');
+    } finally {
+      setLoading(false);
     }
-    return user?.username || 'Usuario';
   };
 
-  const getUserInitial = () => {
-    return user?.username?.charAt(0).toUpperCase() || 'U';
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
-  const infoCards = [
-    {
-      icon: '📋',
-      title: 'Cartas Fianza',
-      description: 'Gestiona todas las cartas fianza del sistema',
-      color: 'from-blue-50 to-blue-100 border-blue-200 hover:border-blue-400',
-    },
-    {
-      icon: '🏦',
-      title: 'Entidades Financieras',
-      description: 'Administra las entidades financieras',
-      color: 'from-green-50 to-green-100 border-green-200 hover:border-green-400',
-    },
-    {
-      icon: '👥',
-      title: 'Contratistas',
-      description: 'Gestiona la información de contratistas',
-      color: 'from-purple-50 to-purple-100 border-purple-200 hover:border-purple-400',
-    },
-    {
-      icon: '📊',
-      title: 'Reportes',
-      description: 'Genera reportes y estadísticas',
-      color: 'from-orange-50 to-orange-100 border-orange-200 hover:border-orange-400',
-    },
-  ];
+  // Combinar las listas de vencidas y por vencer
+  const criticalWarranties = [
+    ...vencidasList.map(w => ({ ...w, tipo: 'vencida' })),
+    ...porVencerList.map(w => ({ ...w, tipo: 'por-vencer' }))
+  ].sort((a, b) => new Date(a.validity_end) - new Date(b.validity_end));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Título */}
-            <div>
-              <h1 className="text-2xl font-bold text-primary-500">
-                Sistema de Gestión de Cartas Fianza
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Universidad Nacional de Frontera - Sullana
-              </p>
-            </div>
-
-            {/* Usuario y logout */}
-            <div className="flex items-center gap-4">
-              {/* Info usuario */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 
-                              flex items-center justify-center text-white font-semibold text-base">
-                  {getUserInitial()}
+    <Layout>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p className="mt-4 text-gray-600">Cargando datos...</p>
+          </div>
+        </div>
+      ) : (
+          <>
+            {/* Tarjetas de estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-8">
+              {/* Vencidas */}
+              <div className="bg-white rounded-lg shadow-sm border-l-8 border-red-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                      <span className="text-xl">📄</span>
+                      Vencidas
+                    </p>
+                  </div>
+                  <div className="bg-red-100 rounded-full p-3">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="hidden sm:flex flex-col">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {getUserDisplayName()}
-                  </span>
-                  <span className="text-xs text-gray-600">{user?.email}</span>
+                <div className="flex-1 flex items-center">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.vencidas}
+                  </p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-red-600 font-medium">
+                    {stats.vencidas > 0 ? 'Requieren gestión urgente' : 'Sin cartas vencidas'}
+                  </p>
                 </div>
               </div>
 
-              {/* Botón logout */}
-              <button
-                onClick={handleLogout}
-                className="px-5 py-2 bg-dark text-white text-sm font-medium rounded-md
-                         hover:bg-dark-400 hover:-translate-y-0.5 hover:shadow-md
-                         active:translate-y-0
-                         transition-all duration-300"
-              >
-                Cerrar Sesión
-              </button>
+              {/* Por vencer (1-15 días) */}
+              <div className="bg-white rounded-lg shadow-sm border-l-8 border-yellow-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                      <span className="text-xl">⏰</span>
+                      Por vencer
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">1 a 15 días</p>
+                  </div>
+                  <div className="bg-yellow-100 rounded-full p-3">
+                    <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1 flex items-center">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.porVencer}
+                  </p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-yellow-600 font-medium">
+                    {stats.porVencer > 0 ? 'Requieren atención próximamente' : 'Sin cartas próximas a vencer'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Vigentes (>15 días) */}
+              <div className="bg-white rounded-lg shadow-sm border-l-8 border-green-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                      <span className="text-xl">✅</span>
+                      Por vencer
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">&gt; 15 días</p>
+                  </div>
+                  <div className="bg-green-100 rounded-full p-3">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1 flex items-center">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats.vigentes}
+                  </p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-green-600 font-medium">
+                    Vigentes
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 md:p-8 mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            ¡Bienvenido al Sistema!
-          </h2>
-          <p className="text-gray-600 text-base mb-8">
-            Has iniciado sesión correctamente. El desarrollo del dashboard está en progreso.
-          </p>
+          {/* Tabla de cartas vencidas o próximas a vencer */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Cartas fianzas vencidas o próximas a vencer
+              </h2>
+            </div>
 
-          {/* Info Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {infoCards.map((card, index) => (
-              <div
-                key={index}
-                className={`bg-gradient-to-br ${card.color} 
-                          rounded-lg p-6 text-center border-2 
-                          transform hover:-translate-y-1 hover:shadow-lg
-                          transition-all duration-300 cursor-pointer`}
-              >
-                <div className="text-5xl mb-4">{card.icon}</div>
-                <h3 className="text-lg font-semibold text-primary-500 mb-2">
-                  {card.title}
+            {criticalWarranties.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  ¡Todo en orden!
                 </h3>
-                <p className="text-sm text-gray-600">{card.description}</p>
+                <p className="text-gray-600">
+                  No hay cartas vencidas ni próximas a vencer en los próximos 15 días.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Status Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            Estado del Sistema
-          </h3>
-          
-          <div className="flex flex-col gap-4">
-            {[
-              '✅ Autenticación funcionando correctamente',
-              '✅ Conectado al Backend Django',
-              '✅ Base de datos PostgreSQL activa',
-            ].map((status, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-3 rounded-md bg-green-50 text-green-800"
-              >
-                <div className="w-2 h-2 rounded-full bg-green-600"></div>
-                <span className="text-sm font-medium">{status}</span>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Objeto de la carta
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Número
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vencimiento
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {criticalWarranties.map((warranty, index) => (
+                      <tr key={`${warranty.tipo}-${warranty.warranty_id}-${index}`} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {warranty.warranty_object_description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {warranty.letter_type_description}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {warranty.letter_number}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(warranty.validity_end)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {warranty.tipo === 'vencida' ? (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              {warranty.time_expired} vencida
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              {warranty.time_remaining} para el vencimiento
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      </main>
-    </div>
+        </>
+      )}
+    </Layout>
   );
 };
 
