@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import WarrantyObjects from './pages/WarrantyObjects';
 import FinancialEntities from './pages/FinancialEntities';
 import Contractors from './pages/Contractors';
+import CurrencyTypes from './pages/CurrencyTypes';
+import LetterTypes from './pages/LetterTypes';
 
 function App() {
   return (
@@ -59,6 +61,22 @@ function App() {
           element={
             <PrivateRoute>
               <Contractors />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/catalogos/tipos-moneda" 
+          element={
+            <PrivateRoute>
+              <CurrencyTypes />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/catalogos/tipos-carta" 
+          element={
+            <PrivateRoute>
+              <LetterTypes />
             </PrivateRoute>
           } 
         />

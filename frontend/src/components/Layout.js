@@ -69,7 +69,7 @@ const Layout = ({ children }) => {
         { name: 'Tipos de Carta', path: '/catalogos/tipos-carta' },
         { name: 'Entidades Financieras', path: '/catalogos/entidades-financieras' },
         { name: 'Contratistas', path: '/catalogos/contratistas' },
-        { name: 'Estados de Garantía', path: '/catalogos/estados-garantia' },
+        // { name: 'Estados de Garantía', path: '/catalogos/estados-garantia' },
         { name: 'Tipos de Moneda', path: '/catalogos/tipos-moneda' },
       ]
     },
