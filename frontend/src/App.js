@@ -5,6 +5,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WarrantyObjects from './pages/WarrantyObjects';
+import FinancialEntities from './pages/FinancialEntities';
 
 function App() {
   return (
@@ -41,6 +42,14 @@ function App() {
           element={
             <PrivateRoute>
               <WarrantyObjects />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/catalogos/entidades-financieras" 
+          element={
+            <PrivateRoute>
+              <FinancialEntities />
             </PrivateRoute>
           } 
         />
