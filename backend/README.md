@@ -162,7 +162,8 @@ En producción, asegúrate de:
 Comandos importantes para recordar:
 
 Iniciar los contenedores (después de reiniciar la PC):
-cd C:\Mario2\Docker\cartas-fianzadocker-compose -f docker-compose.dev.yml up -d
+cd C:\Mario2\Docker\cartas-fianza
+docker-compose -f docker-compose.dev.yml up -d
 
 Detener los contenedores:
 docker-compose -f docker-compose.dev.yml down

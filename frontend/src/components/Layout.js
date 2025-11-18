@@ -10,6 +10,7 @@ const Layout = ({ children }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCatalogosMenu, setShowCatalogosMenu] = useState(false);
   const [showReportesMenu, setShowReportesMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const userMenuRef = useRef(null);
   const catalogosMenuRef = useRef(null);
   const reportesMenuRef = useRef(null);
@@ -90,13 +91,13 @@ const Layout = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-gradient-to-r from-primary-600 to-primary-700 shadow-lg">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Navbar con Flowbite + Tailwind */}
+      <nav className="bg-gradient-to-r from-primary-600 to-primary-700 border-b border-primary-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo y título */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
               <img 
                 src={`${process.env.PUBLIC_URL}/images/logo-unf.png`}
                 alt="Logo UNF"
@@ -106,16 +107,21 @@ const Layout = ({ children }) => {
                 }}
               />
               <div className="hidden md:block">
-                <h1 className="text-white font-bold text-lg leading-tight">
+                <h1 className="text-white font-bold text-md leading-tight">
                   SISTEMA DE GESTIÓN DE CARTAS FIANZA
                 </h1>
                 <p className="text-primary-100 text-xs">
                   Universidad Nacional de Frontera
                 </p>
               </div>
+              <div className="md:hidden">
+                <h1 className="text-white font-bold text-sm">
+                  Cartas Fianza
+                </h1>
+              </div>
             </div>
 
-            {/* Menú de navegación */}
+            {/* Menú desktop */}
             <div className="hidden lg:flex items-center space-x-1">
               {menuItems.map((item) => (
                 <div key={item.name} className="relative" ref={item.name === 'Catálogos' ? catalogosMenuRef : item.name === 'Reportes' ? reportesMenuRef : null}>
@@ -137,7 +143,7 @@ const Layout = ({ children }) => {
                             : 'text-primary-50 hover:bg-primary-500 hover:text-white'
                           }`}
                       >
-                        <span>{item.icon}</span>
+                        {/* <span>{item.icon}</span> */}
                         <span>{item.name}</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -147,7 +153,7 @@ const Layout = ({ children }) => {
                       {/* Submenu dropdown */}
                       {((item.name === 'Catálogos' && showCatalogosMenu) || 
                         (item.name === 'Reportes' && showReportesMenu)) && (
-                        <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                        <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 animate-fadeIn">
                           {item.submenu.map((subItem) => (
                             <button
                               key={subItem.name}
@@ -177,7 +183,7 @@ const Layout = ({ children }) => {
                           : 'text-primary-50 hover:bg-primary-500 hover:text-white'
                         }`}
                     >
-                      <span>{item.icon}</span>
+                      {/* <span>{item.icon}</span> */}
                       <span>{item.name}</span>
                     </button>
                   )}
@@ -185,80 +191,118 @@ const Layout = ({ children }) => {
               ))}
             </div>
 
-            {/* Avatar del usuario */}
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 p-1 rounded-full hover:bg-primary-500 transition-colors duration-200"
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary-400 to-secondary-600 
-                              flex items-center justify-center text-white font-bold text-sm
-                              ring-2 ring-white shadow-lg">
-                  {getUserInitials()}
-                </div>
-              </button>
-
-              {/* Dropdown del usuario */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200">
-                  <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {getUserFullName()}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {user?.email || user?.username}
-                    </p>
+            {/* Botón hamburguesa y avatar */}
+            <div className="flex items-center gap-2">
+              {/* Avatar del usuario */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-primary-500 transition-colors duration-200"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-primary-600 
+                                flex items-center justify-center text-white font-bold text-sm
+                                ring-2 ring-white shadow-lg">
+                    {getUserInitials()}
                   </div>
-                  
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 
-                             transition-colors duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Cerrar Sesión</span>
-                  </button>
-                </div>
-              )}
+                </button>
+
+                {/* Dropdown del usuario */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-200 animate-fadeIn">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {getUserFullName()}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {user?.email || user?.username}
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 
+                               transition-colors duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Botón hamburguesa móvil */}
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="lg:hidden inline-flex items-center p-2 rounded-md text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-colors"
+                aria-expanded={showMobileMenu}
+              >
+                <span className="sr-only">Abrir menú</span>
+                {showMobileMenu ? (
+                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Menú móvil */}
-        <div className="lg:hidden border-t border-primary-500">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+        {/* Menú móvil colapsable */}
+        <div 
+          className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+            showMobileMenu ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="px-2 pt-2 pb-3 space-y-1 border-t border-primary-500">
             {menuItems.map((item) => (
               <div key={item.name}>
-                <button
-                  onClick={() => !item.hasSubmenu && navigate(item.path)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2
-                    ${isActive(item.path)
-                      ? 'bg-primary-800 text-white'
-                      : 'text-primary-50 hover:bg-primary-500 hover:text-white'
-                    }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.name}</span>
-                </button>
-                {item.hasSubmenu && item.submenu && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <button
-                        key={subItem.name}
-                        onClick={() => navigate(subItem.path)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-xs
-                          ${isActive(subItem.path)
-                            ? 'bg-primary-700 text-white'
-                            : 'text-primary-100 hover:bg-primary-500'
-                          }`}
-                      >
-                        {subItem.name}
-                      </button>
-                    ))}
-                  </div>
+                {item.hasSubmenu ? (
+                  <>
+                    <div className="px-3 py-2 rounded-md text-sm font-medium text-primary-50 flex items-center gap-2">
+                      <span>{item.icon}</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <div className="ml-4 space-y-1">
+                      {item.submenu.map((subItem) => (
+                        <button
+                          key={subItem.name}
+                          onClick={() => {
+                            navigate(subItem.path);
+                            setShowMobileMenu(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors
+                            ${isActive(subItem.path)
+                              ? 'bg-primary-700 text-white font-medium'
+                              : 'text-primary-100 hover:bg-primary-500'
+                            }`}
+                        >
+                          {subItem.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      navigate(item.path);
+                      setShowMobileMenu(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors
+                      ${isActive(item.path)
+                        ? 'bg-primary-800 text-white'
+                        : 'text-primary-50 hover:bg-primary-500 hover:text-white'
+                      }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.name}</span>
+                  </button>
                 )}
               </div>
             ))}
@@ -267,7 +311,7 @@ const Layout = ({ children }) => {
       </nav>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
 
@@ -284,4 +328,3 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
-

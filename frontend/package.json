@@ -5,6 +5,8 @@
   "dependencies": {
     "@formkit/tempo": "^0.1.2",
     "axios": "^1.7.9",
+    "flowbite": "^4.0.1",
+    "flowbite-react": "^0.12.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.1.3",

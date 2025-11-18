@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import api from '../services/api';
 import Layout from '../components/Layout';
+import FileXIcon from '../components/icons/FileXIcon';
+import ClockIcon from '../components/icons/ClockIcon';
+import FileCheckIcon from '../components/icons/FileCheckIcon';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -74,8 +77,9 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border-l-8 border-red-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                      <span className="text-xl">📄</span>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      {/* <span className="text-xl">📄</span> */}
+                      <FileXIcon size={24} />
                       Vencidas
                     </p>
                   </div>
@@ -102,8 +106,9 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border-l-8 border-yellow-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                      <span className="text-xl">⏰</span>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      {/* <span className="text-xl">⏰</span> */}
+                      <ClockIcon size={24} />
                       Por vencer
                     </p>
                     <p className="text-xs text-gray-500 mt-1">1 a 15 días</p>
@@ -131,8 +136,9 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border-l-8 border-green-500 p-6 hover:shadow-md transition-shadow duration-200 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                      <span className="text-xl">✅</span>
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      {/* <span className="text-xl">✅</span> */}
+                      <FileCheckIcon size={24} />
                       Por vencer
                     </p>
                     <p className="text-xs text-gray-500 mt-1">&gt; 15 días</p>
