@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import PrivateRoute from './components/PrivateRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import WarrantyObjects from './pages/WarrantyObjects';
 
 function App() {
   return (
@@ -30,6 +31,16 @@ function App() {
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Catálogos */}
+        <Route 
+          path="/catalogos/objetos-garantia" 
+          element={
+            <PrivateRoute>
+              <WarrantyObjects />
             </PrivateRoute>
           } 
         />
