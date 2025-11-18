@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WarrantyObjects from './pages/WarrantyObjects';
 import FinancialEntities from './pages/FinancialEntities';
+import Contractors from './pages/Contractors';
 
 function App() {
   return (
@@ -50,6 +51,14 @@ function App() {
           element={
             <PrivateRoute>
               <FinancialEntities />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/catalogos/contratistas" 
+          element={
+            <PrivateRoute>
+              <Contractors />
             </PrivateRoute>
           } 
         />
