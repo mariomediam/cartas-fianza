@@ -25,7 +25,8 @@ from .serializers import (
     WarrantyObjectSerializer,
     WarrantyStatusSerializer,
     CurrencyTypeSerializer,
-    WarrantySerializer
+    WarrantySerializer,
+    WarrantyObjectSearchSerializer
 )
 
 
@@ -246,6 +247,7 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
     - PUT /api/warranty-objects/{id}/ - Actualizar un objeto de garantía
     - PATCH /api/warranty-objects/{id}/ - Actualizar parcialmente un objeto de garantía
     - DELETE /api/warranty-objects/{id}/ - Eliminar un objeto de garantía
+    - GET /api/warranty-objects/buscar/?filter_type=...&filter_value=... - Buscar objetos de garantía
     """
     queryset = WarrantyObject.objects.all()
     serializer_class = WarrantyObjectSerializer
@@ -263,6 +265,109 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
     
     # Ordenamiento por defecto
     ordering = ['-created_at']
+    
+    @action(detail=False, methods=['get'], url_path='buscar')
+    def buscar(self, request):
+        """
+        Buscar objetos de garantía con filtros avanzados
+        
+        Parámetros:
+        - filter_type: Tipo de filtro a aplicar
+          * 'letter_number': Buscar por número de carta
+          * 'description': Buscar por descripción del objeto de garantía
+          * 'contractor_ruc': Buscar por RUC del contratista
+          * 'contractor_name': Buscar por nombre del contratista
+        - filter_value: Valor a buscar (se usa búsqueda con LIKE/ICONTAINS)
+        
+        Ejemplo:
+        GET /api/warranty-objects/buscar/?filter_type=letter_number&filter_value=002-00
+        
+        Retorna una lista de objetos de garantía que cumplen con el filtro
+        con toda la información anidada de garantías e historiales
+        """
+        filter_type = request.query_params.get('filter_type', None)
+        filter_value = request.query_params.get('filter_value', None)
+        
+        # Validar que se proporcionaron ambos parámetros
+        if not filter_type or not filter_value:
+            return Response({
+                'error': 'Se requieren los parámetros filter_type y filter_value'
+            }, status=400)
+        
+        # Iniciar queryset base con optimización de consultas
+        # Usar prefetch_related para evitar N+1 queries
+        from django.db.models import Prefetch
+        
+        queryset = WarrantyObject.objects.select_related(
+            'created_by',
+            'updated_by'
+        ).prefetch_related(
+            Prefetch(
+                'warranties',
+                queryset=Warranty.objects.select_related(
+                    'letter_type',
+                    'contractor'
+                ).prefetch_related(
+                    Prefetch(
+                        'history',
+                        queryset=WarrantyHistory.objects.select_related(
+                            'warranty_status',
+                            'currency_type',
+                            'financial_entity'
+                        ).order_by('-issue_date')
+                    )
+                )
+            )
+        )
+        
+        # Aplicar filtro según el tipo
+        if filter_type == 'letter_number':
+            # Buscar por número de carta
+            # SQL: SELECT DISTINCT warranty_objects.id FROM warranty_objects
+            #      INNER JOIN warranties ON warranty_objects.id = warranties.warranty_object_id
+            #      INNER JOIN warranty_histories ON warranties.id = warranty_histories.warranty_id
+            #      WHERE warranty_histories.letter_number LIKE '%valor%'
+            queryset = queryset.filter(
+                warranties__history__letter_number__icontains=filter_value
+            ).distinct()
+            
+        elif filter_type == 'description':
+            # Buscar por descripción del objeto de garantía
+            queryset = queryset.filter(
+                description__icontains=filter_value
+            ).distinct()
+            
+        elif filter_type == 'contractor_ruc':
+            # Buscar por RUC del contratista
+            # SQL: SELECT DISTINCT warranty_objects.id FROM warranty_objects
+            #      INNER JOIN warranties ON warranty_objects.id = warranties.warranty_object_id
+            #      INNER JOIN contractors ON warranties.contractor_id = contractors.id
+            #      WHERE contractors.ruc LIKE '%valor%'
+            queryset = queryset.filter(
+                warranties__contractor__ruc__icontains=filter_value
+            ).distinct()
+            
+        elif filter_type == 'contractor_name':
+            # Buscar por nombre del contratista
+            # SQL: SELECT DISTINCT warranty_objects.id FROM warranty_objects
+            #      INNER JOIN warranties ON warranty_objects.id = warranties.warranty_object_id
+            #      INNER JOIN contractors ON warranties.contractor_id = contractors.id
+            #      WHERE contractors.business_name LIKE '%valor%'
+            queryset = queryset.filter(
+                warranties__contractor__business_name__icontains=filter_value
+            ).distinct()
+            
+        else:
+            return Response({
+                'error': 'Tipo de filtro no válido. Valores permitidos: letter_number, description, contractor_ruc, contractor_name'
+            }, status=400)
+        
+        # Usar el serializer especial para búsqueda con información anidada
+        serializer = WarrantyObjectSearchSerializer(queryset, many=True, context={'request': request})
+        return Response({
+            'count': queryset.count(),
+            'results': serializer.data
+        })
 
 
 class WarrantyStatusViewSet(viewsets.ModelViewSet):

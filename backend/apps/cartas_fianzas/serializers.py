@@ -678,3 +678,94 @@ class WarrantySerializer(serializers.ModelSerializer):
             validated_data['updated_by'] = request.user
         
         return super().update(instance, validated_data)
+
+
+# ========== Serializers para Búsqueda Anidada ==========
+
+class WarrantyHistoryNestedSerializer(serializers.ModelSerializer):
+    """
+    Serializer anidado para Historial de Garantías (solo lectura para búsquedas)
+    """
+    warranty_status_id = serializers.IntegerField(source='warranty_status.id', read_only=True)
+    warranty_status_description = serializers.CharField(source='warranty_status.description', read_only=True)
+    warranty_status_is_active = serializers.BooleanField(source='warranty_status.is_active', read_only=True)
+    currency_type_id = serializers.IntegerField(source='currency_type.id', read_only=True)
+    currency_type_symbol = serializers.CharField(source='currency_type.symbol', read_only=True)
+    financial_entity_id = serializers.IntegerField(source='financial_entity.id', read_only=True)
+    financial_entity_description = serializers.CharField(source='financial_entity.description', read_only=True)
+    
+    class Meta:
+        model = WarrantyHistory
+        fields = [
+            'id',
+            'warranty_status_id',
+            'warranty_status_description',
+            'warranty_status_is_active',
+            'letter_number',
+            'validity_start',
+            'validity_end',
+            'reference_document',
+            'issue_date',
+            'currency_type_id',
+            'currency_type_symbol',
+            'amount',
+            'financial_entity_id',
+            'financial_entity_description',
+            'financial_entity_address',
+            'comments'
+        ]
+
+
+class WarrantyNestedSerializer(serializers.ModelSerializer):
+    """
+    Serializer anidado para Garantías (solo lectura para búsquedas)
+    """
+    letter_type_id = serializers.IntegerField(source='letter_type.id', read_only=True)
+    letter_type_description = serializers.CharField(source='letter_type.description', read_only=True)
+    contractor_id = serializers.IntegerField(source='contractor.id', read_only=True)
+    contractor_business_name = serializers.CharField(source='contractor.business_name', read_only=True)
+    contractor_ruc = serializers.CharField(source='contractor.ruc', read_only=True)
+    warranty_histories = WarrantyHistoryNestedSerializer(source='history', many=True, read_only=True)
+    
+    class Meta:
+        model = Warranty
+        fields = [
+            'id',
+            'letter_type_id',
+            'letter_type_description',
+            'contractor_id',
+            'contractor_business_name',
+            'contractor_ruc',
+            'warranty_histories'
+        ]
+
+
+class WarrantyObjectSearchSerializer(serializers.ModelSerializer):
+    """
+    Serializer para búsqueda de Objetos de Garantía con información anidada completa
+    """
+    created_by_name = serializers.CharField(
+        source='created_by.username',
+        read_only=True
+    )
+    updated_by_name = serializers.CharField(
+        source='updated_by.username',
+        read_only=True
+    )
+    warranties = WarrantyNestedSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = WarrantyObject
+        fields = [
+            'id',
+            'description',
+            'cui',
+            'created_by',
+            'created_by_name',
+            'created_at',
+            'updated_by',
+            'updated_by_name',
+            'updated_at',
+            'warranties'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by_name', 'updated_by_name']
