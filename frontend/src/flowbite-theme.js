@@ -52,5 +52,38 @@ const customTheme = {
   },
 };
 
+// Tema personalizado para Acordeones
+export const customAccordionTheme = {
+  root: {
+    base: "divide-y divide-gray-200 border-gray-200",
+    flush: {
+      off: "rounded-lg border",
+      on: "border-b",
+    },
+  },
+  content: {
+    base: "py-5 px-5 last:rounded-b-lg",
+  },
+  title: {
+    arrow: {
+      base: "h-6 w-6 shrink-0",
+      open: {
+        off: "",
+        on: "rotate-180",
+      },
+    },
+    base: "flex w-full items-center justify-between first:rounded-t-lg last:rounded-b-lg py-5 px-5 text-left font-medium text-gray-500",
+    flush: {
+      off: "hover:bg-gray-100 focus:ring-4 focus:ring-gray-200",
+      on: "bg-transparent",
+    },
+    heading: "",
+    open: {
+      off: "",
+      on: "text-gray-900 bg-gray-100",
+    },
+  },
+};
+
 export default customTheme;
 

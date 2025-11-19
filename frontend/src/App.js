@@ -9,6 +9,7 @@ import FinancialEntities from './pages/FinancialEntities';
 import Contractors from './pages/Contractors';
 import CurrencyTypes from './pages/CurrencyTypes';
 import LetterTypes from './pages/LetterTypes';
+import CartasFianza from './pages/CartasFianza';
 
 function App() {
   return (
@@ -77,6 +78,16 @@ function App() {
           element={
             <PrivateRoute>
               <LetterTypes />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Cartas Fianza */}
+        <Route 
+          path="/cartas-fianza" 
+          element={
+            <PrivateRoute>
+              <CartasFianza />
             </PrivateRoute>
           } 
         />
