@@ -127,6 +127,11 @@ const CartasFianza = () => {
     // navigate(`/cartas-fianza/detalle/${historyId}`);
   };
 
+  const handleAgregarGarantia = (warrantyObjectId) => {
+    toast.info("Función Agregar Garantía en desarrollo");
+    // navigate(`/cartas-fianza/agregar/${warrantyObjectId}`);
+  };
+
   // Toggle de acordeones
   const toggleWarrantyObject = (id) => {
     setExpandedWarrantyObjects((prev) => ({
@@ -157,9 +162,9 @@ const CartasFianza = () => {
 
         {/* Formulario de búsqueda */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <form onSubmit={handleSearch} className="flex gap-4 items-end">
+          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 md:items-end">
             {/* Dropdown de tipo de filtro */}
-            <div className="flex-shrink-0 w-64">
+            <div className="w-full md:flex-shrink-0 md:w-64">
               <label
                 htmlFor="filterType"
                 className="block text-sm font-medium text-gray-700 mb-2"
@@ -181,7 +186,7 @@ const CartasFianza = () => {
             </div>
 
             {/* Input de búsqueda */}
-            <div className="flex-grow">
+            <div className="w-full md:flex-grow">
               <label
                 htmlFor="filterValue"
                 className="block text-sm font-medium text-gray-700 mb-2"
@@ -199,11 +204,11 @@ const CartasFianza = () => {
             </div>
 
             {/* Botón de búsqueda */}
-            <div className="flex-shrink-0">
+            <div className="w-full md:flex-shrink-0 md:w-auto">
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full md:w-auto inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -295,13 +300,14 @@ const CartasFianza = () => {
                     className="border border-gray-200 rounded-lg overflow-hidden"
                   >
                     {/* Encabezado del Objeto de Garantía */}
-                    <button
-                      onClick={() => toggleWarrantyObject(warrantyObject.id)}
-                      className="w-full flex items-center justify-between p-5 text-left font-medium text-gray-500 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
+                    <div className="w-full flex flex-col md:flex-row md:items-center p-5 hover:bg-gray-100 transition-colors gap-3">
+                      {/* Botón de toggle (área clickeable) */}
+                      <button
+                        onClick={() => toggleWarrantyObject(warrantyObject.id)}
+                        className="flex-1 flex items-center gap-3 text-left"
+                      >
                         <svg
-                          className="w-5 h-5 text-primary-600"
+                          className="w-5 h-5 text-primary-600 flex-shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -313,33 +319,66 @@ const CartasFianza = () => {
                             d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                           />
                         </svg>
-                        <span className="font-semibold text-gray-900">
-                          {warrantyObject.description}
-                        </span>
-                        {warrantyObject.cui && (
-                          <span className="text-sm text-gray-600 font-normal">
-                            (CUI: {warrantyObject.cui})
+                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                          <span className="font-semibold text-gray-900">
+                            {warrantyObject.description}
                           </span>
-                        )}
-                      </div>
-                      <svg
-                        className={`w-6 h-6 shrink-0 transition-transform ${
-                          expandedWarrantyObjects[warrantyObject.id]
-                            ? "rotate-180"
-                            : ""
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                          {warrantyObject.cui && (
+                            <span className="text-sm text-gray-600 font-normal">
+                              (CUI: {warrantyObject.cui})
+                            </span>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Botón Agregar garantía */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAgregarGarantia(warrantyObject.id);
+                        }}
+                        className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 whitespace-nowrap"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Agregar garantía
+                      </button>
+
+                      {/* Flecha de expansión */}
+                      <button
+                        onClick={() => toggleWarrantyObject(warrantyObject.id)}
+                        className="self-end md:self-center"
+                      >
+                        <svg
+                          className={`w-6 h-6 shrink-0 transition-transform ${
+                            expandedWarrantyObjects[warrantyObject.id]
+                              ? "rotate-180"
+                              : ""
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
+                    </div>
 
                     {/* Contenido del Objeto de Garantía */}
                     {expandedWarrantyObjects[warrantyObject.id] && (
@@ -364,42 +403,29 @@ const CartasFianza = () => {
                                   {/* Encabezado de la Garantía */}
                                   <button
                                     onClick={() => toggleWarranty(warranty.id)}
-                                    className="w-full flex items-center justify-between p-4 text-left font-medium hover:bg-gray-100 focus:ring-2 focus:ring-primary-300 transition-colors bg-white"
+                                    className="w-full flex flex-col md:flex-row md:items-center md:justify-between p-4 text-left font-medium hover:bg-gray-100 focus:ring-2 focus:ring-primary-300 transition-colors bg-white gap-3"
                                   >
-                                    <div className="flex items-center gap-3 flex-1">
-                                      {/* <svg
-                                        className="w-4 h-4 text-blue-600 flex-shrink-0"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                        />
-                                      </svg> */}
+                                    <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                       <div className="flex-1">
                                         <span className="font-medium text-gray-900">
                                           {warranty.letter_type_description}
                                         </span>
-                                        <span className="mx-2 text-gray-400">
+                                        <span className="mx-2 text-gray-400 hidden sm:inline">
                                           •
                                         </span>
-                                        <span className="text-gray-700">
+                                        <span className="block sm:inline text-gray-700 text-sm sm:text-base mt-1 sm:mt-0">
                                           {warranty.contractor_ruc} -{" "}
                                           {warranty.contractor_business_name}
                                         </span>
                                       </div>
                                       {expiryBadge && (
-                                        <div className="ml-4 flex-shrink-0">
+                                        <div className="flex-shrink-0 self-start sm:self-center">
                                           {expiryBadge}
                                         </div>
                                       )}
                                     </div>
                                     <svg
-                                      className={`w-5 h-5 shrink-0 ml-2 transition-transform ${
+                                      className={`w-5 h-5 shrink-0 self-end md:self-center transition-transform ${
                                         expandedWarranties[warranty.id]
                                           ? "rotate-180"
                                           : ""
