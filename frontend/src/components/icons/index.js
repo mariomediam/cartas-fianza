@@ -5,4 +5,4 @@ export { default as FileTextIcon } from './FileTextIcon';
 export { default as CheckCircleIcon } from './CheckCircleIcon';
 export { default as AlertCircleIcon } from './AlertCircleIcon';
 export { default as ClockIcon } from './ClockIcon';
-
+export { default as PDFIcon } from './PDFIcon';

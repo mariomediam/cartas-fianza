@@ -291,9 +291,9 @@ const AddWarranty = () => {
     }
   };
   
-  // Cancelar y regresar
+  // Cancelar y regresar a la página anterior
   const handleCancel = () => {
-    navigate('/cartas-fianza');
+    navigate(-1);
   };
   
   // Callback cuando se crea un contratista nuevo
@@ -318,12 +318,25 @@ const AddWarranty = () => {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Título */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agregar carta</h1>
-          {warrantyObjectDescription && (
-            <p className="text-gray-600 mt-1">{warrantyObjectDescription}</p>
-          )}
+        {/* Título con botón cerrar */}
+        <div className="relative">
+          <div className="pr-12">
+            <h1 className="text-2xl font-bold text-gray-900">Agregar carta</h1>
+            {warrantyObjectDescription && (
+              <p className="text-gray-600 mt-1">{warrantyObjectDescription}</p>
+            )}
+          </div>
+          
+          {/* Botón cerrar */}
+          <button
+            onClick={handleCancel}
+            className="absolute top-0 right-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Cerrar y volver"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         {/* Formulario */}

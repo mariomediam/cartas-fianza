@@ -769,3 +769,117 @@ class WarrantyObjectSearchSerializer(serializers.ModelSerializer):
             'warranties'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'created_by_name', 'updated_by_name']
+
+
+# ========== Serializer para Detalle de Historial ==========
+
+class WarrantyHistoryDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer completo para el detalle de un historial de garantía
+    Incluye toda la información relacionada de la garantía, tipo de carta,
+    entidad financiera, contratista, moneda y archivos.
+    
+    Equivalente a la consulta SQL:
+    SELECT * FROM warranty_histories
+    INNER JOIN warranties ON warranty_histories.warranty_id = warranties.id
+    LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+    LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+    LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+    LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+    LEFT JOIN warranty_files ON warranty_histories.id = warranty_files.warranty_history_id
+    """
+    # Archivos relacionados
+    files = WarrantyFileSerializer(many=True, read_only=True)
+    
+    # Información del estado de la garantía
+    warranty_status_id = serializers.IntegerField(source='warranty_status.id', read_only=True)
+    warranty_status_description = serializers.CharField(source='warranty_status.description', read_only=True)
+    warranty_status_is_active = serializers.BooleanField(source='warranty_status.is_active', read_only=True)
+    
+    # Información de la entidad financiera
+    financial_entity_id = serializers.IntegerField(source='financial_entity.id', read_only=True)
+    financial_entity_description = serializers.CharField(source='financial_entity.description', read_only=True)
+    
+    # Información del tipo de moneda
+    currency_type_id = serializers.IntegerField(source='currency_type.id', read_only=True)
+    currency_type_description = serializers.CharField(source='currency_type.description', read_only=True)
+    currency_type_code = serializers.CharField(source='currency_type.code', read_only=True)
+    currency_type_symbol = serializers.CharField(source='currency_type.symbol', read_only=True)
+    
+    # Información de la garantía (warranty)
+    warranty_id = serializers.IntegerField(source='warranty.id', read_only=True)
+    warranty_object_id = serializers.IntegerField(source='warranty.warranty_object.id', read_only=True)
+    warranty_object_description = serializers.CharField(source='warranty.warranty_object.description', read_only=True)
+    warranty_object_cui = serializers.CharField(source='warranty.warranty_object.cui', read_only=True)
+    
+    # Información del tipo de carta
+    letter_type_id = serializers.IntegerField(source='warranty.letter_type.id', read_only=True)
+    letter_type_description = serializers.CharField(source='warranty.letter_type.description', read_only=True)
+    
+    # Información del contratista
+    contractor_id = serializers.IntegerField(source='warranty.contractor.id', read_only=True)
+    contractor_business_name = serializers.CharField(source='warranty.contractor.business_name', read_only=True)
+    contractor_ruc = serializers.CharField(source='warranty.contractor.ruc', read_only=True)
+    
+    # Información de auditoría
+    created_by_id = serializers.IntegerField(source='created_by.id', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    updated_by_id = serializers.IntegerField(source='updated_by.id', read_only=True, allow_null=True)
+    updated_by_username = serializers.CharField(source='updated_by.username', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = WarrantyHistory
+        fields = [
+            # Campos del historial
+            'id',
+            'letter_number',
+            'financial_entity_address',
+            'issue_date',
+            'validity_start',
+            'validity_end',
+            'amount',
+            'reference_document',
+            'comments',
+            
+            # Estado de garantía
+            'warranty_status_id',
+            'warranty_status_description',
+            'warranty_status_is_active',
+            
+            # Entidad financiera
+            'financial_entity_id',
+            'financial_entity_description',
+            
+            # Tipo de moneda
+            'currency_type_id',
+            'currency_type_description',
+            'currency_type_code',
+            'currency_type_symbol',
+            
+            # Información de la garantía
+            'warranty_id',
+            'warranty_object_id',
+            'warranty_object_description',
+            'warranty_object_cui',
+            
+            # Tipo de carta
+            'letter_type_id',
+            'letter_type_description',
+            
+            # Contratista
+            'contractor_id',
+            'contractor_business_name',
+            'contractor_ruc',
+            
+            # Archivos
+            'files',
+            
+            # Auditoría
+            'created_by_id',
+            'created_by_username',
+            'created_at',
+            'updated_by_id',
+            'updated_by_username',
+            'updated_at',
+        ]
+        read_only_fields = fields  # Todos son de solo lectura para el GET

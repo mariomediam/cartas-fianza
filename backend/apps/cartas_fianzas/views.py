@@ -26,7 +26,8 @@ from .serializers import (
     WarrantyStatusSerializer,
     CurrencyTypeSerializer,
     WarrantySerializer,
-    WarrantyObjectSearchSerializer
+    WarrantyObjectSearchSerializer,
+    WarrantyHistoryDetailSerializer
 )
 
 
@@ -689,3 +690,182 @@ class WarrantyViewSet(viewsets.ModelViewSet):
         return Response({
             'count': count
         })
+
+
+class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para obtener el detalle de un historial de garantía
+    
+    Este ViewSet proporciona endpoints de solo lectura para consultar
+    el historial de garantías con toda su información relacionada.
+    
+    Operaciones disponibles:
+    - GET /api/warranty-histories/ - Listar todos los historiales
+    - GET /api/warranty-histories/{id}/ - Obtener un historial específico con toda su información
+    
+    La consulta optimizada incluye:
+    - Información del historial de garantía
+    - Datos de la garantía asociada
+    - Tipo de carta
+    - Entidad financiera
+    - Contratista
+    - Tipo de moneda
+    - Archivos adjuntos
+    
+    Equivalente a la consulta SQL:
+    SELECT * FROM warranty_histories
+    INNER JOIN warranties ON warranty_histories.warranty_id = warranties.id
+    LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+    LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+    LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+    LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+    LEFT JOIN warranty_files ON warranty_histories.id = warranty_files.warranty_history_id
+    WHERE warranty_histories.id = {id}
+    """
+    serializer_class = WarrantyHistoryDetailSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        Obtiene el queryset optimizado con select_related y prefetch_related
+        para minimizar las consultas a la base de datos.
+        
+        Conversión de SQL a ORM de Django:
+        - INNER JOIN warranties: select_related('warranty')
+        - LEFT JOIN letter_types: select_related('warranty__letter_type')
+        - LEFT JOIN financial_entities: select_related('financial_entity')
+        - LEFT JOIN contractors: select_related('warranty__contractor')
+        - LEFT JOIN currency_types: select_related('currency_type')
+        - LEFT JOIN warranty_files: prefetch_related('files')
+        """
+        return WarrantyHistory.objects.select_related(
+            # INNER JOIN con warranty
+            'warranty',
+            # Relaciones de warranty
+            'warranty__warranty_object',
+            'warranty__letter_type',
+            'warranty__contractor',
+            # Relaciones directas de warranty_history
+            'financial_entity',
+            'currency_type',
+            'warranty_status',
+            # Información de auditoría
+            'created_by',
+            'updated_by'
+        ).prefetch_related(
+            # LEFT JOIN con warranty_files (relación inversa)
+            'files'
+        )
+    
+    @action(detail=True, methods=['get'], url_path='is-latest')
+    def is_latest(self, request, pk=None):
+        """
+        Verifica si un historial es el último de su garantía.
+        
+        GET /api/warranty-histories/{id}/is-latest/
+        
+        Conversión de SQL a ORM:
+        SELECT warranty_id, MAX(id) AS max_history_id
+        FROM warranty_histories
+        WHERE warranty_histories.warranty_id = (SELECT warranty_id FROM warranty_histories WHERE id = {pk})
+        GROUP BY warranty_id
+        
+        ORM equivalente:
+        WarrantyHistory.objects.filter(
+            warranty_id=history.warranty_id
+        ).aggregate(max_history_id=Max('id'))
+        
+        Retorna:
+        {
+            "is_latest": true/false,
+            "history_id": 7,
+            "warranty_id": 2,
+            "latest_history_id": 7
+        }
+        """
+        try:
+            history = self.get_object()
+            warranty_id = history.warranty_id
+            
+            # Obtener el ID del último historial para esta garantía
+            # Conversión de: SELECT MAX(id) FROM warranty_histories WHERE warranty_id = X
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).aggregate(max_id=Max('id'))
+            
+            latest_history_id = latest_history['max_id']
+            is_latest = (history.id == latest_history_id)
+            
+            return Response({
+                'is_latest': is_latest,
+                'history_id': history.id,
+                'warranty_id': warranty_id,
+                'latest_history_id': latest_history_id,
+                'message': 'Este es el último historial de la garantía' if is_latest else 'Este NO es el último historial de la garantía'
+            })
+            
+        except WarrantyHistory.DoesNotExist:
+            return Response(
+                {'error': 'Historial de garantía no encontrado'},
+                status=404
+            )
+    
+    @action(detail=False, methods=['get'], url_path='latest-by-warranty/(?P<warranty_id>[^/.]+)')
+    def latest_by_warranty(self, request, warranty_id=None):
+        """
+        Obtiene el último historial de una garantía específica.
+        
+        GET /api/warranty-histories/latest-by-warranty/{warranty_id}/
+        
+        Conversión de SQL a ORM:
+        SELECT warranty_id, MAX(id) AS max_history_id
+        FROM warranty_histories
+        WHERE warranty_histories.warranty_id = {warranty_id}
+        GROUP BY warranty_id
+        
+        ORM equivalente (Opción 1 - Solo el ID):
+        WarrantyHistory.objects.filter(
+            warranty_id=warranty_id
+        ).aggregate(max_history_id=Max('id'))
+        
+        ORM equivalente (Opción 2 - Objeto completo):
+        WarrantyHistory.objects.filter(
+            warranty_id=warranty_id
+        ).order_by('-id').first()
+        
+        Retorna el historial completo con toda su información.
+        """
+        try:
+            # Obtener el último historial usando order_by('-id').first()
+            # Esto es más eficiente que aggregate + get
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related(
+                'files'
+            ).order_by('-id').first()
+            
+            if not latest_history:
+                return Response(
+                    {'error': f'No se encontró historial para la garantía {warranty_id}'},
+                    status=404
+                )
+            
+            # Serializar el historial completo
+            serializer = self.get_serializer(latest_history)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=400
+            )

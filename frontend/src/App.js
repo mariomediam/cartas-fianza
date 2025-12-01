@@ -11,6 +11,7 @@ import CurrencyTypes from './pages/CurrencyTypes';
 import LetterTypes from './pages/LetterTypes';
 import CartasFianza from './pages/CartasFianza';
 import AddWarranty from './pages/AddWarranty';
+import ViewWarranty from './pages/ViewWarranty';
 
 function App() {
   return (
@@ -97,6 +98,14 @@ function App() {
           element={
             <PrivateRoute>
               <AddWarranty />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/detalle/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <ViewWarranty />
             </PrivateRoute>
           } 
         />

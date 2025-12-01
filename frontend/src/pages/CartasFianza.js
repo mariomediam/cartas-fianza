@@ -161,8 +161,8 @@ const CartasFianza = () => {
   };
 
   const handleVerDetalle = (historyId) => {
-    toast.info("Función Ver Detalle en desarrollo");
-    // navigate(`/cartas-fianza/detalle/${historyId}`);
+    // Navegar a la página de detalle del historial
+    navigate(`/cartas-fianza/detalle/${historyId}`);
   };
 
   const handleAgregarGarantia = (warrantyObjectId, warrantyObjectDescription) => {
