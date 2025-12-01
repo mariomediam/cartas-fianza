@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import AsyncSelect from 'react-select/async';
@@ -41,6 +41,9 @@ const AddWarranty = () => {
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
   const [showContractorModal, setShowContractorModal] = useState(false);
   
+  // Ref para el timeout del debounce
+  const debounceTimeoutRef = useRef(null);
+  
   // Cargar catálogos al montar el componente
   useEffect(() => {
     loadCatalogs();
@@ -66,8 +69,8 @@ const AddWarranty = () => {
     }
   };
   
-  // Función para buscar contratistas con debounce
-  const loadContractorOptions = useCallback(async (inputValue) => {
+  // Función de búsqueda real de contratistas
+  const searchContractors = async (inputValue) => {
     if (!inputValue || inputValue.trim().length < 2) {
       return [];
     }
@@ -90,6 +93,22 @@ const AddWarranty = () => {
       console.error('Error al buscar contratistas:', error);
       return [];
     }
+  };
+  
+  // Función para buscar contratistas con debounce de 1 segundo
+  const loadContractorOptions = useCallback((inputValue) => {
+    return new Promise((resolve) => {
+      // Limpiar el timeout anterior si existe
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Crear nuevo timeout
+      debounceTimeoutRef.current = setTimeout(async () => {
+        const results = await searchContractors(inputValue);
+        resolve(results);
+      }, 1000); // Debounce de 1 segundo
+    });
   }, []);
   
   // Manejar cambios en los inputs
@@ -520,6 +539,7 @@ const AddWarranty = () => {
               <div className="flex-1">
                 <AsyncSelect
                   id="contractor"
+                  isClearable
                   cacheOptions
                   loadOptions={loadContractorOptions}
                   defaultOptions={false}
@@ -644,19 +664,19 @@ const AddWarranty = () => {
           </div>
           
           {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={handleCancel}
               disabled={loading}
-              className="flex-1 sm:flex-initial px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 sm:flex-initial px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
