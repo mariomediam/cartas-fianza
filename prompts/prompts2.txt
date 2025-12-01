@@ -1,0 +1,201 @@
+Quiero hacer una consulta que me permita buscar objetos de garantía a partir de los siguientes filtros:
+- Número de carta
+- Descripción del objeto de garantía
+- Contratista (Por ruc o por nombre)
+
+A la función el voy a pasar 2 parámetros, el filtro de búsqueda y su valor
+
+Te paso la consulta SQL para bucar por número de carta, para que la conviertas en el ORM y crees las consultas para los otros filtros
+
+select distinct warranty_objects.id
+from warranty_objects
+inner join warranties
+on warranty_objects.id = warranties.warranty_object_id
+inner join warranty_histories
+on warranties.id = warranty_histories.warranty_id
+inner join contractors
+on warranties.contractor_id = contractors.id
+where warranty_histories.letter_number  like '%002-00%'
+
+
+Actualmente me retornas los siguientes valores:
+
+{
+    "count": 2,
+    "results": [
+        {
+            "id": 3,
+            "description": "CONSTRUCCION DE PARQUE MUNICIPAL Y AREAS VERDES",
+            "cui": "2234567",
+            "created_by": 2,
+            "created_by_name": "test_user",
+            "created_at": "12/11/2025 12:29",
+            "updated_by": 2,
+            "updated_by_name": "test_user",
+            "updated_at": "18/11/2025 11:08"
+        },
+        {
+            "id": 2,
+            "description": "MEJORAMIENTO DE INFRAESTRUCTURA VIAL URBANA",
+            "cui": "2345678",
+            "created_by": 2,
+            "created_by_name": "test_user",
+            "created_at": "12/11/2025 12:29",
+            "updated_by": null,
+            "updated_at": "12/11/2025 12:29"
+        }
+    ]
+}
+
+Ahora para cada "Objeto de garantía" encontrado quiero que me retornes las "garantías" e "historial de garantías" que le corresponden ejemplo:
+
+{
+    "count": 2,
+    "results": [
+        {
+            "id": 3,
+            "description": "CONSTRUCCION DE PARQUE MUNICIPAL Y AREAS VERDES",
+            "cui": "2234567",
+            "created_by": 2,
+            "created_by_name": "test_user",
+            "created_at": "12/11/2025 12:29",
+            "updated_by": 2,
+            "updated_by_name": "test_user",
+            "updated_at": "18/11/2025 11:08"
+	    "warranties": [
+		{ "id": 1,
+		  "letter_type": 1,
+		  "letter_type_description": "Adelanto de materiales",
+		  "contractor_id": 2,
+		  "contractor_business_name": "CANTON LIMA SA",
+		  "contractor_ruc: "12345678901",
+		  "warranty_histories: [
+			{ "id": 4,
+			  "warranty_status_id": 1,
+			  "warranty_status_description": "Emisión",
+			  "warranty_status_is_active": True,
+			  "letter_number": "010079913-000",
+			  "validy_start": "01/01/2025",
+			  "validy_end": "31/12/2025",
+			  "reference_document": "INF 076-2025-HFD/YT",
+			  "issue_date": "21/12/2025",
+			  "currency_type_id": 3,
+			  "currency_type_symbol: "S/",
+			  "amount": 26756.73,
+			  
+			},
+			{
+			...
+			}
+		  ]
+		},
+		{
+		...
+		}
+	    ]
+        },
+        {
+            "id": 2,
+            "description": "MEJORAMIENTO DE INFRAESTRUCTURA VIAL URBANA",
+            "cui": "2345678",
+            "created_by": 2,
+            "created_by_name": "test_user",
+            "created_at": "12/11/2025 12:29",
+            "updated_by": null,
+            "updated_at": "12/11/2025 12:29"
+        }
+    ]
+}
+
+En la medida de lo posible intenta hacer consultas join para evitar multiples llamadas a la base datos
+
+*******************
+
+Ahora que ya hemos creado el endpoint vamos a consumirlo desde el frontend
+
+{
+    "count": 1,
+    "results": [
+        {
+            "id": 2,
+            "description": "MEJORAMIENTO DE INFRAESTRUCTURA VIAL URBANA",
+            "cui": "2345678",
+            "created_by": 2,
+            "created_by_name": "test_user",
+            "created_at": "12/11/2025 12:29",
+            "updated_by": null,
+            "updated_at": "12/11/2025 12:29",
+            "warranties": [
+                {
+                    "id": 2,
+                    "letter_type_id": 2,
+                    "letter_type_description": "Adelanto directo",
+                    "contractor_id": 1,
+                    "contractor_business_name": "CONSTRUCTORA ABC S.A.C.",
+                    "contractor_ruc": "20123456789",
+                    "warranty_histories": [
+                        {
+                            "id": 2,
+                            "warranty_status_id": 1,
+                            "warranty_status_description": "Emisión",
+                            "warranty_status_is_active": true,
+                            "letter_number": "00000002-001",
+                            "validity_start": "15/01/2024",
+                            "validity_end": "31/12/2024",
+                            "reference_document": "CONTRATO 001-2024",
+                            "issue_date": "15/01/2024",
+                            "currency_type_id": 1,
+                            "currency_type_symbol": "S/.",
+                            "amount": "50000.00",
+                            "financial_entity_id": 1,
+                            "financial_entity_description": "SCOTIABANK PERU",
+                            "financial_entity_address": "Av. Principal 123, Lima",
+                            "comments": "Garantía inicial"
+                        },
+                        {
+                            "id": 6,
+                            "warranty_status_id": 1,
+                            "warranty_status_description": "Emisión",
+                            "warranty_status_is_active": true,
+                            "letter_number": "00000002-002",
+                            "validity_start": "15/01/2024",
+                            "validity_end": "31/12/2024",
+                            "reference_document": "CONTRATO 001-2024",
+                            "issue_date": "15/01/2024",
+                            "currency_type_id": 2,
+                            "currency_type_symbol": "$",
+                            "amount": "5000.00",
+                            "financial_entity_id": 2,
+                            "financial_entity_description": "BANCO DE LA NACION",
+                            "financial_entity_address": "Av. Principal 123, Lima",
+                            "comments": "Garantía inicial"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+Para ello quiero crear la página "Cartas fianza" la cual va a tener:
+
+- En la parte superior un formulario de búsqueda con un Dropdown que tendrá 3 valores (Número de carta, Objeto de garantía, Contratista), un input para ingresar el valor buscado y a la derecha un botón buscar para ejecutar la búsqueda
+
+- Debajo deben aparecer los resultados de la búsqueda de la siguiente manera:
+Un acordión para cada "Objeto de garantía" que tendrá como encabezado la descripción y CUI (de ser el caso) del objeto de garantía.
+Y como cuerpo del acordión las garantías que tiene registrada cada "Objeto de garantía"
+Cada garantía también debe estar dentro de un acordión con titulo la "descripción del tipo de carta", el "RUC y nombre del contratista" y el tiempo que falta o se ha vencido la garantía. En color rojo si ya está vencida, amarilla si faltan entre 1 y 15 días por vencer. Si faltan más de 15 días para vencer no se debe mostrar nada.
+y como cuerpo del acordión el historial de estados de la garantía.
+El historial de estado se debe visualizar en un timeline en donde para cada estado se debe visualizar: El tipo de estado de la garantía (Emisión, renovación, devolución, etc), el número de la carta, la fecha de inicio y fin de vigencia, el simbolo de la moneda y el monto. y a la derecha un botón "Ver detalle" el cual nos llevara a otro formulario que desarrollaremos posteriormente.
+
+En la parte inferior de cada garantía deben haber 3 botones, si y solo si, el ultimo historial de garantía tiene el valor warranty_status_is_active = true. Los botones son "Renovar", "Devolver" y "Ejecutar" los cuales nos llevaran a otros formularios que desarrollaremos posteriormente
+
+
+*****************************
+
+Actualmente para cada "Historial de estado" se muestra El tipo de estado de la garantía (Emisión, renovación, devolución, etc), número de carta, la vigencia, monto, fecha de emisión, entidad financiera, documento de referencia, comentarios y botón "Ver detalle" tal como se aprecia en el gráfico 1.
+Sin embargo yo quiero se muestre solo los siguientes datos: 
+Si el campo warranty_status_is_active = true mostrar: el tipo de estado de la garantía (Emisión), número de carta, la vigencia, monto, y botón "Ver detalle" tal como se aprecia en el gráfico 2. 
+Si el campo warranty_status_is_active = false mostrar:fecha de emisión, documento de referencia y botón "Ver detalle" tal como se aprecia en el gráfico 3
+En ambos casos se deben visualizar en una sola fila horizontal, si la pantalla es móvil se debe mostrar en fila vertical
+

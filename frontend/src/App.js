@@ -10,6 +10,7 @@ import Contractors from './pages/Contractors';
 import CurrencyTypes from './pages/CurrencyTypes';
 import LetterTypes from './pages/LetterTypes';
 import CartasFianza from './pages/CartasFianza';
+import AddWarranty from './pages/AddWarranty';
 
 function App() {
   return (
@@ -88,6 +89,14 @@ function App() {
           element={
             <PrivateRoute>
               <CartasFianza />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/agregar/:warrantyObjectId" 
+          element={
+            <PrivateRoute>
+              <AddWarranty />
             </PrivateRoute>
           } 
         />

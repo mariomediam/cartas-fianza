@@ -1,17 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import Layout from "../components/Layout";
+import useWarrantyFiltersStore from "../store/warrantyFiltersStore";
 
 const CartasFianza = () => {
   const navigate = useNavigate();
-  const [filterType, setFilterType] = useState("letter_number");
-  const [filterValue, setFilterValue] = useState("");
-  const [searchResults, setSearchResults] = useState(null);
+  const location = useLocation();
+  
+  // Usar el store de Zustand para persistir los filtros
+  const {
+    filterType,
+    filterValue,
+    searchResults,
+    setFilterType,
+    setFilterValue,
+    setSearchResults,
+  } = useWarrantyFiltersStore();
+  
   const [loading, setLoading] = useState(false);
   const [expandedWarrantyObjects, setExpandedWarrantyObjects] = useState({});
   const [expandedWarranties, setExpandedWarranties] = useState({});
+  
+  // Efecto para recargar la búsqueda cuando regresamos de agregar/editar
+  useEffect(() => {
+    const refreshSearch = async () => {
+      if (location.state?.shouldRefresh && searchResults && filterValue.trim()) {
+        // Si hay filtros aplicados, re-ejecutar la búsqueda
+        setLoading(true);
+        try {
+          const response = await api.get("/warranty-objects/buscar/", {
+            params: {
+              filter_type: filterType,
+              filter_value: filterValue.trim(),
+            },
+          });
+          setSearchResults(response.data);
+        } catch (error) {
+          console.error("Error al buscar:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    refreshSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.shouldRefresh]);
 
   // Mapeo de filtros para el dropdown
   const filterOptions = [
@@ -22,8 +58,8 @@ const CartasFianza = () => {
   ];
 
   // Función para buscar
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (e, silent = false) => {
+    if (e) e.preventDefault();
 
     if (!filterValue.trim()) {
       toast.error("Por favor ingrese un valor para buscar");
@@ -41,10 +77,12 @@ const CartasFianza = () => {
 
       setSearchResults(response.data);
 
-      if (response.data.count === 0) {
-        toast.info("No se encontraron resultados");
-      } else {
-        toast.success(`Se encontraron ${response.data.count} resultado(s)`);
+      if (!silent) {
+        if (response.data.count === 0) {
+          toast.info("No se encontraron resultados");
+        } else {
+          toast.success(`Se encontraron ${response.data.count} resultado(s)`);
+        }
       }
     } catch (error) {
       console.error("Error al buscar:", error);
@@ -127,9 +165,11 @@ const CartasFianza = () => {
     // navigate(`/cartas-fianza/detalle/${historyId}`);
   };
 
-  const handleAgregarGarantia = (warrantyObjectId) => {
-    toast.info("Función Agregar Garantía en desarrollo");
-    // navigate(`/cartas-fianza/agregar/${warrantyObjectId}`);
+  const handleAgregarGarantia = (warrantyObjectId, warrantyObjectDescription) => {
+    // Navegar a la página de agregar garantía pasando el ID y descripción
+    navigate(
+      `/cartas-fianza/agregar/${warrantyObjectId}?description=${encodeURIComponent(warrantyObjectDescription)}`
+    );
   };
 
   // Toggle de acordeones
@@ -335,7 +375,7 @@ const CartasFianza = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAgregarGarantia(warrantyObject.id);
+                          handleAgregarGarantia(warrantyObject.id, warrantyObject.description);
                         }}
                         className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 whitespace-nowrap"
                       >
