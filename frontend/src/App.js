@@ -12,6 +12,7 @@ import LetterTypes from './pages/LetterTypes';
 import CartasFianza from './pages/CartasFianza';
 import AddWarranty from './pages/AddWarranty';
 import ViewWarranty from './pages/ViewWarranty';
+import RenewWarranty from './pages/RenewWarranty';
 
 function App() {
   return (
@@ -106,6 +107,14 @@ function App() {
           element={
             <PrivateRoute>
               <ViewWarranty />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/renovar/:warrantyId" 
+          element={
+            <PrivateRoute>
+              <RenewWarranty />
             </PrivateRoute>
           } 
         />

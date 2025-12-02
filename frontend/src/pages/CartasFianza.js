@@ -145,9 +145,8 @@ const CartasFianza = () => {
   };
 
   // Handlers para los botones de acción
-  const handleRenovar = (warrantyId) => {
-    toast.info("Función Renovar en desarrollo");
-    // navigate(`/cartas-fianza/renovar/${warrantyId}`);
+  const handleRenovar = (warrantyId, warrantyObjectDescription) => {
+    navigate(`/cartas-fianza/renovar/${warrantyId}?description=${encodeURIComponent(warrantyObjectDescription || '')}`);
   };
 
   const handleDevolver = (warrantyId) => {
@@ -707,7 +706,7 @@ const CartasFianza = () => {
                                             <div className="flex flex-col md:flex-row items-center justify-center gap-3 pt-4 border-t border-gray-200">
                                               <button
                                                 onClick={() =>
-                                                  handleRenovar(warranty.id)
+                                                  handleRenovar(warranty.id, warrantyObject.description)
                                                 }
                                                 className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 w-full md:w-auto"
                                               >

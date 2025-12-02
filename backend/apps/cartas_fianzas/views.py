@@ -724,6 +724,7 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = WarrantyHistoryDetailSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_queryset(self):
         """
@@ -867,5 +868,181 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             return Response(
                 {'error': str(e)},
+                status=400
+            )
+    
+    @action(detail=False, methods=['post'], url_path='renovar')
+    def renovar(self, request):
+        """
+        Renueva una carta fianza creando un nuevo historial.
+        
+        POST /api/warranty-histories/renovar/
+        
+        Crea un nuevo registro en warranty_histories con estado "Renovación" (o el que se indique).
+        Solo se puede renovar si el último historial tiene un estado activo.
+        
+        Campos requeridos:
+        - warranty_id: ID de la garantía a renovar
+        - letter_number: Nuevo número de carta
+        - financial_entity: ID de la entidad financiera
+        - financial_entity_address: Dirección de la entidad
+        - issue_date: Fecha de emisión (YYYY-MM-DD)
+        - validity_start: Inicio de vigencia (YYYY-MM-DD)
+        - validity_end: Fin de vigencia (YYYY-MM-DD)
+        - currency_type: ID del tipo de moneda
+        - amount: Monto de la renovación
+        - warranty_status: ID del estado (normalmente "Renovación")
+        
+        Campos opcionales:
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF adjuntos
+        
+        Validaciones:
+        1. El último historial debe tener estado activo (is_active=True)
+        2. Las fechas deben ser válidas
+        3. El monto debe ser mayor a 0
+        """
+        try:
+            # Obtener warranty_id del request
+            warranty_id = request.data.get('warranty_id')
+            
+            if not warranty_id:
+                return Response(
+                    {'error': 'El campo warranty_id es requerido'},
+                    status=400
+                )
+            
+            # Verificar que la garantía existe
+            try:
+                warranty = Warranty.objects.get(id=warranty_id)
+            except Warranty.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró la garantía con ID {warranty_id}'},
+                    status=404
+                )
+            
+            # Obtener el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).select_related('warranty_status').order_by('-id').first()
+            
+            if not latest_history:
+                return Response(
+                    {'error': 'La garantía no tiene historial'},
+                    status=400
+                )
+            
+            # Validar que el último historial tenga estado activo
+            if not latest_history.warranty_status.is_active:
+                return Response(
+                    {
+                        'error': 'Solo se puede renovar una carta con estado activo',
+                        'current_status': latest_history.warranty_status.description,
+                        'is_active': latest_history.warranty_status.is_active
+                    },
+                    status=400
+                )
+            
+            # Validar campos requeridos
+            required_fields = [
+                'letter_number', 'financial_entity', 'financial_entity_address',
+                'issue_date', 'validity_start', 'validity_end',
+                'currency_type', 'amount', 'warranty_status'
+            ]
+            
+            missing_fields = [field for field in required_fields if not request.data.get(field)]
+            if missing_fields:
+                return Response(
+                    {'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'},
+                    status=400
+                )
+            
+            # Validar fechas
+            from datetime import datetime
+            try:
+                issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+                validity_start = datetime.strptime(request.data.get('validity_start'), '%Y-%m-%d').date()
+                validity_end = datetime.strptime(request.data.get('validity_end'), '%Y-%m-%d').date()
+                
+                if validity_start > validity_end:
+                    return Response(
+                        {'error': 'La fecha de fin de vigencia debe ser posterior al inicio'},
+                        status=400
+                    )
+                
+                if issue_date > validity_start:
+                    return Response(
+                        {'error': 'La fecha de inicio debe ser posterior o igual a la fecha de emisión'},
+                        status=400
+                    )
+            except ValueError as e:
+                return Response(
+                    {'error': f'Formato de fecha inválido. Use YYYY-MM-DD. Detalle: {str(e)}'},
+                    status=400
+                )
+            
+            # Validar monto
+            try:
+                amount = float(request.data.get('amount'))
+                if amount <= 0:
+                    return Response(
+                        {'error': 'El monto debe ser mayor a 0'},
+                        status=400
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'El monto debe ser un número válido'},
+                    status=400
+                )
+            
+            # Crear el nuevo historial de renovación
+            new_history = WarrantyHistory.objects.create(
+                warranty=warranty,
+                warranty_status_id=request.data.get('warranty_status'),
+                letter_number=request.data.get('letter_number'),
+                financial_entity_id=request.data.get('financial_entity'),
+                financial_entity_address=request.data.get('financial_entity_address'),
+                issue_date=issue_date,
+                validity_start=validity_start,
+                validity_end=validity_end,
+                currency_type_id=request.data.get('currency_type'),
+                amount=amount,
+                reference_document=request.data.get('reference_document', ''),
+                comments=request.data.get('comments', ''),
+                created_by=request.user
+            )
+            
+            # Manejar archivos adjuntos
+            files = request.FILES.getlist('files')
+            for file in files:
+                WarrantyFile.objects.create(
+                    warranty_history=new_history,
+                    file=file,
+                    file_name=file.name,
+                    created_by=request.user
+                )
+            
+            # Recargar con todas las relaciones
+            new_history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=new_history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(new_history)
+            
+            return Response(serializer.data, status=201)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al renovar la carta: {str(e)}'},
                 status=400
             )
