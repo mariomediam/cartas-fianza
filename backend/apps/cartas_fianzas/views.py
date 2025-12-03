@@ -1294,3 +1294,149 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': f'Error al eliminar el historial: {str(e)}'},
                 status=400
             )
+    
+    @action(detail=False, methods=['post'], url_path='ejecutar')
+    def ejecutar(self, request):
+        """
+        Ejecuta una carta fianza creando un nuevo historial con estado "Ejecución".
+        
+        POST /api/warranty-histories/ejecutar/
+        
+        Crea un nuevo registro en warranty_histories con estado "Ejecución" (ID 6).
+        Solo se puede ejecutar si el último historial tiene un estado activo.
+        
+        Campos requeridos:
+        - warranty_id: ID de la garantía a ejecutar
+        - issue_date: Fecha de ejecución (YYYY-MM-DD)
+        
+        Campos opcionales:
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF adjuntos
+        
+        Campos que van en NULL:
+        - letter_number, financial_entity, financial_entity_address
+        - validity_start, validity_end, currency_type, amount
+        
+        Validaciones:
+        1. El último historial debe tener estado activo (is_active=True)
+        2. La fecha debe ser válida
+        """
+        try:
+            # Obtener warranty_id del request
+            warranty_id = request.data.get('warranty_id')
+            
+            if not warranty_id:
+                return Response(
+                    {'error': 'El campo warranty_id es requerido'},
+                    status=400
+                )
+            
+            # Verificar que la garantía existe
+            try:
+                warranty = Warranty.objects.get(id=warranty_id)
+            except Warranty.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró la garantía con ID {warranty_id}'},
+                    status=404
+                )
+            
+            # Obtener el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).select_related('warranty_status').order_by('-id').first()
+            
+            if not latest_history:
+                return Response(
+                    {'error': 'La garantía no tiene historial'},
+                    status=400
+                )
+            
+            # Validar que el último historial tenga estado activo
+            if not latest_history.warranty_status.is_active:
+                return Response(
+                    {
+                        'error': 'Solo se puede ejecutar una carta con estado activo',
+                        'current_status': latest_history.warranty_status.description,
+                        'is_active': latest_history.warranty_status.is_active
+                    },
+                    status=400
+                )
+            
+            # Validar campo requerido: issue_date
+            if not request.data.get('issue_date'):
+                return Response(
+                    {'error': 'El campo issue_date es requerido'},
+                    status=400
+                )
+            
+            # Validar fecha
+            from datetime import datetime
+            try:
+                issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+            except ValueError as e:
+                return Response(
+                    {'error': f'Formato de fecha inválido. Use YYYY-MM-DD. Detalle: {str(e)}'},
+                    status=400
+                )
+            
+            # Obtener el estado "Ejecución" (ID 6)
+            try:
+                execution_status = WarrantyStatus.objects.get(id=6)
+            except WarrantyStatus.DoesNotExist:
+                return Response(
+                    {'error': 'No se encontró el estado de Ejecución (ID 6)'},
+                    status=400
+                )
+            
+            # Crear el nuevo historial de ejecución
+            # Los campos no aplicables van en null
+            new_history = WarrantyHistory.objects.create(
+                warranty=warranty,
+                warranty_status=execution_status,
+                letter_number=None,  # No aplica para ejecución
+                financial_entity=None,  # No aplica para ejecución
+                financial_entity_address=None,  # No aplica para ejecución
+                issue_date=issue_date,
+                validity_start=None,  # No aplica para ejecución
+                validity_end=None,  # No aplica para ejecución
+                currency_type=None,  # No aplica para ejecución
+                amount=None,  # No aplica para ejecución
+                reference_document=request.data.get('reference_document', ''),
+                comments=request.data.get('comments', ''),
+                created_by=request.user
+            )
+            
+            # Manejar archivos adjuntos
+            files = request.FILES.getlist('files')
+            for file in files:
+                WarrantyFile.objects.create(
+                    warranty_history=new_history,
+                    file=file,
+                    file_name=file.name,
+                    created_by=request.user
+                )
+            
+            # Recargar con todas las relaciones
+            new_history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=new_history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(new_history)
+            
+            return Response(serializer.data, status=201)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al ejecutar la carta: {str(e)}'},
+                status=400
+            )
