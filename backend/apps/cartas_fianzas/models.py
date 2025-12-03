@@ -237,39 +237,53 @@ class WarrantyHistory(BaseModel):
     )
     letter_number = models.CharField(
         max_length=50,
+        blank=True,
+        null=True,
         verbose_name='Número de Carta',
-        help_text='Ejemplo: 010079913-000'
+        help_text='Ejemplo: 010079913-000. Puede ser nulo para devoluciones/ejecuciones.'
     )
     financial_entity = models.ForeignKey(
         FinancialEntity,
         on_delete=models.PROTECT,
         related_name='warranty_histories',
-        verbose_name='Entidad Financiera'
+        verbose_name='Entidad Financiera',
+        null=True,
+        blank=True
     )
     financial_entity_address = models.CharField(
         max_length=50,
+        blank=True,
+        null=True,
         verbose_name='Dirección de Entidad Financiera'
     )
     issue_date = models.DateField(
         verbose_name='Fecha de Emisión'
     )
     validity_start = models.DateField(
-        verbose_name='Inicio de Vigencia'
+        verbose_name='Inicio de Vigencia',
+        null=True,
+        blank=True
     )
     validity_end = models.DateField(
-        verbose_name='Fin de Vigencia'
+        verbose_name='Fin de Vigencia',
+        null=True,
+        blank=True
     )
     currency_type = models.ForeignKey(
         CurrencyType,
         on_delete=models.PROTECT,
         related_name='warranty_histories',
-        verbose_name='Tipo de Moneda'
+        verbose_name='Tipo de Moneda',
+        null=True,
+        blank=True
     )
     amount = models.DecimalField(
         max_digits=18,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name='Monto'
+        verbose_name='Monto',
+        null=True,
+        blank=True
     )
     reference_document = models.CharField(
         max_length=50,

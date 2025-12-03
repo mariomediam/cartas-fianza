@@ -149,9 +149,8 @@ const CartasFianza = () => {
     navigate(`/cartas-fianza/renovar/${warrantyId}?description=${encodeURIComponent(warrantyObjectDescription || '')}`);
   };
 
-  const handleDevolver = (warrantyId) => {
-    toast.info("Función Devolver en desarrollo");
-    // navigate(`/cartas-fianza/devolver/${warrantyId}`);
+  const handleDevolver = (warrantyId, warrantyObjectDescription) => {
+    navigate(`/cartas-fianza/devolver/${warrantyId}?description=${encodeURIComponent(warrantyObjectDescription || '')}`);
   };
 
   const handleEjecutar = (warrantyId) => {
@@ -159,9 +158,18 @@ const CartasFianza = () => {
     // navigate(`/cartas-fianza/ejecutar/${warrantyId}`);
   };
 
-  const handleVerDetalle = (historyId) => {
-    // Navegar a la página de detalle del historial
-    navigate(`/cartas-fianza/detalle/${historyId}`);
+  const handleVerDetalle = (historyId, warrantyStatusId) => {
+    // Navegar a la página de detalle según el estado
+    if (warrantyStatusId === 3) {
+      // Devolución
+      navigate(`/cartas-fianza/detalle-devolucion/${historyId}`);
+    } else if (warrantyStatusId === 6) {
+      // Ejecución
+      navigate(`/cartas-fianza/detalle-ejecucion/${historyId}`);
+    } else {
+      // Emisión (1) o Renovación (2) u otros
+      navigate(`/cartas-fianza/detalle/${historyId}`);
+    }
   };
 
   const handleAgregarGarantia = (warrantyObjectId, warrantyObjectDescription) => {
@@ -598,7 +606,8 @@ const CartasFianza = () => {
                                                         <button
                                                           onClick={() =>
                                                             handleVerDetalle(
-                                                              history.id
+                                                              history.id,
+                                                              history.warranty_status_id
                                                             )
                                                           }
                                                           className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-primary-700  rounded-lg hover:bg-primary-100 focus:ring-2 focus:ring-primary-300 whitespace-nowrap border border-primary-500"
@@ -667,7 +676,8 @@ const CartasFianza = () => {
                                                         <button
                                                           onClick={() =>
                                                             handleVerDetalle(
-                                                              history.id
+                                                              history.id,
+                                                              history.warranty_status_id
                                                             )
                                                           }
                                                           className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-primary-700  rounded-lg hover:bg-primary-100 focus:ring-2 focus:ring-primary-300 whitespace-nowrap border border-primary-500"
@@ -729,9 +739,9 @@ const CartasFianza = () => {
                                               </button>
                                               <button
                                                 onClick={() =>
-                                                  handleDevolver(warranty.id)
+                                                  handleDevolver(warranty.id, warrantyObject.description)
                                                 }
-                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 w-full md:w-auto"
+                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 w-full md:w-auto"
                                               >
                                                 <svg
                                                   className="w-4 h-4 mr-2"

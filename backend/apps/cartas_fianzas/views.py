@@ -315,7 +315,7 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
                             'warranty_status',
                             'currency_type',
                             'financial_entity'
-                        ).order_by('issue_date')
+                        ).order_by('id')
                     )
                 )
             )
@@ -1044,5 +1044,253 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             return Response(
                 {'error': f'Error al renovar la carta: {str(e)}'},
+                status=400
+            )
+    
+    @action(detail=False, methods=['post'], url_path='devolver')
+    def devolver(self, request):
+        """
+        Devuelve una carta fianza creando un nuevo historial con estado "Devolución".
+        
+        POST /api/warranty-histories/devolver/
+        
+        Crea un nuevo registro en warranty_histories con estado "Devolución" (ID 3).
+        Solo se puede devolver si el último historial tiene un estado activo.
+        
+        Campos requeridos:
+        - warranty_id: ID de la garantía a devolver
+        - issue_date: Fecha de devolución (YYYY-MM-DD)
+        
+        Campos opcionales:
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF adjuntos
+        
+        Campos que van en NULL:
+        - letter_number, financial_entity, financial_entity_address
+        - validity_start, validity_end, currency_type, amount
+        
+        Validaciones:
+        1. El último historial debe tener estado activo (is_active=True)
+        2. La fecha debe ser válida
+        """
+        try:
+            # Obtener warranty_id del request
+            warranty_id = request.data.get('warranty_id')
+            
+            if not warranty_id:
+                return Response(
+                    {'error': 'El campo warranty_id es requerido'},
+                    status=400
+                )
+            
+            # Verificar que la garantía existe
+            try:
+                warranty = Warranty.objects.get(id=warranty_id)
+            except Warranty.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró la garantía con ID {warranty_id}'},
+                    status=404
+                )
+            
+            # Obtener el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).select_related('warranty_status').order_by('-id').first()
+            
+            if not latest_history:
+                return Response(
+                    {'error': 'La garantía no tiene historial'},
+                    status=400
+                )
+            
+            # Validar que el último historial tenga estado activo
+            if not latest_history.warranty_status.is_active:
+                return Response(
+                    {
+                        'error': 'Solo se puede devolver una carta con estado activo',
+                        'current_status': latest_history.warranty_status.description,
+                        'is_active': latest_history.warranty_status.is_active
+                    },
+                    status=400
+                )
+            
+            # Validar campo requerido: issue_date
+            if not request.data.get('issue_date'):
+                return Response(
+                    {'error': 'El campo issue_date es requerido'},
+                    status=400
+                )
+            
+            # Validar fecha
+            from datetime import datetime
+            try:
+                issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+            except ValueError as e:
+                return Response(
+                    {'error': f'Formato de fecha inválido. Use YYYY-MM-DD. Detalle: {str(e)}'},
+                    status=400
+                )
+            
+            # Obtener el estado "Devolución" (ID 3)
+            try:
+                devolution_status = WarrantyStatus.objects.get(id=3)
+            except WarrantyStatus.DoesNotExist:
+                return Response(
+                    {'error': 'No se encontró el estado de Devolución (ID 3)'},
+                    status=400
+                )
+            
+            # Crear el nuevo historial de devolución
+            # Los campos no aplicables van en null
+            new_history = WarrantyHistory.objects.create(
+                warranty=warranty,
+                warranty_status=devolution_status,
+                letter_number=None,  # No aplica para devolución
+                financial_entity=None,  # No aplica para devolución
+                financial_entity_address=None,  # No aplica para devolución
+                issue_date=issue_date,
+                validity_start=None,  # No aplica para devolución
+                validity_end=None,  # No aplica para devolución
+                currency_type=None,  # No aplica para devolución
+                amount=None,  # No aplica para devolución
+                reference_document=request.data.get('reference_document', ''),
+                comments=request.data.get('comments', ''),
+                created_by=request.user
+            )
+            
+            # Manejar archivos adjuntos
+            files = request.FILES.getlist('files')
+            for file in files:
+                WarrantyFile.objects.create(
+                    warranty_history=new_history,
+                    file=file,
+                    file_name=file.name,
+                    created_by=request.user
+                )
+            
+            # Recargar con todas las relaciones
+            new_history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=new_history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(new_history)
+            
+            return Response(serializer.data, status=201)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al devolver la carta: {str(e)}'},
+                status=400
+            )
+    
+    @action(detail=True, methods=['delete'], url_path='eliminar')
+    def eliminar(self, request, pk=None):
+        """
+        Elimina un historial de garantía y sus archivos asociados.
+        
+        DELETE /api/warranty-histories/{id}/eliminar/
+        
+        Solo se puede eliminar el último historial de una garantía.
+        Si es el único historial, también se elimina la garantía.
+        
+        Elimina:
+        - Archivos físicos del servidor
+        - Registros de warranty_files
+        - Registro de warranty_history
+        - Si es el único historial, también elimina la garantía (warranty)
+        
+        Validaciones:
+        1. El historial debe existir
+        2. Debe ser el último historial de la garantía
+        """
+        try:
+            # Obtener el historial
+            try:
+                history = WarrantyHistory.objects.select_related(
+                    'warranty',
+                    'warranty_status'
+                ).prefetch_related('files').get(id=pk)
+            except WarrantyHistory.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró el historial con ID {pk}'},
+                    status=404
+                )
+            
+            warranty_id = history.warranty_id
+            warranty = history.warranty
+            
+            # Verificar que es el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).order_by('-id').first()
+            
+            if latest_history.id != history.id:
+                return Response(
+                    {
+                        'error': 'Solo se puede eliminar el último historial de la garantía',
+                        'history_id': history.id,
+                        'latest_history_id': latest_history.id
+                    },
+                    status=400
+                )
+            
+            # Contar historiales para saber si es el único
+            history_count = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id
+            ).count()
+            
+            is_only_history = (history_count <= 1)
+            
+            # Eliminar archivos físicos del servidor
+            for file_obj in history.files.all():
+                if file_obj.file:
+                    try:
+                        # Eliminar archivo físico
+                        file_obj.file.delete(save=False)
+                    except Exception as e:
+                        # Log del error pero continuar con la eliminación
+                        print(f'Error al eliminar archivo físico: {e}')
+            
+            # Eliminar registros de archivos
+            history.files.all().delete()
+            
+            # Guardar información para la respuesta antes de eliminar
+            deleted_info = {
+                'history_id': history.id,
+                'warranty_id': warranty_id,
+                'letter_number': history.letter_number,
+                'warranty_status': history.warranty_status.description if history.warranty_status else None,
+                'warranty_deleted': is_only_history
+            }
+            
+            # Eliminar el historial
+            history.delete()
+            
+            # Si era el único historial, eliminar también la garantía
+            if is_only_history:
+                warranty.delete()
+                return Response({
+                    'message': 'Historial y garantía eliminados correctamente',
+                    'deleted': deleted_info
+                }, status=200)
+            
+            return Response({
+                'message': 'Historial eliminado correctamente',
+                'deleted': deleted_info
+            }, status=200)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al eliminar el historial: {str(e)}'},
                 status=400
             )

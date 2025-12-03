@@ -370,6 +370,10 @@ class WarrantyHistorySerializer(serializers.ModelSerializer):
         source='financial_entity.description',
         read_only=True
     )
+    currency_type_description = serializers.CharField(
+        source='currency_type.description',
+        read_only=True
+    )
     currency_type_code = serializers.CharField(
         source='currency_type.code',
         read_only=True
@@ -393,6 +397,7 @@ class WarrantyHistorySerializer(serializers.ModelSerializer):
             'validity_start',
             'validity_end',
             'currency_type',
+            'currency_type_description',
             'currency_type_code',
             'currency_type_symbol',
             'amount',
@@ -690,6 +695,7 @@ class WarrantyHistoryNestedSerializer(serializers.ModelSerializer):
     warranty_status_description = serializers.CharField(source='warranty_status.description', read_only=True)
     warranty_status_is_active = serializers.BooleanField(source='warranty_status.is_active', read_only=True)
     currency_type_id = serializers.IntegerField(source='currency_type.id', read_only=True)
+    currency_type_description = serializers.CharField(source='currency_type.description', read_only=True)
     currency_type_symbol = serializers.CharField(source='currency_type.symbol', read_only=True)
     financial_entity_id = serializers.IntegerField(source='financial_entity.id', read_only=True)
     financial_entity_description = serializers.CharField(source='financial_entity.description', read_only=True)
@@ -707,6 +713,7 @@ class WarrantyHistoryNestedSerializer(serializers.ModelSerializer):
             'reference_document',
             'issue_date',
             'currency_type_id',
+            'currency_type_description',
             'currency_type_symbol',
             'amount',
             'financial_entity_id',

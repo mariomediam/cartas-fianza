@@ -12,7 +12,10 @@ import LetterTypes from './pages/LetterTypes';
 import CartasFianza from './pages/CartasFianza';
 import AddWarranty from './pages/AddWarranty';
 import ViewWarranty from './pages/ViewWarranty';
+import ViewDevolution from './pages/ViewDevolution';
+import ViewExecution from './pages/ViewExecution';
 import RenewWarranty from './pages/RenewWarranty';
+import ReturnWarranty from './pages/ReturnWarranty';
 
 function App() {
   return (
@@ -111,10 +114,34 @@ function App() {
           } 
         />
         <Route 
+          path="/cartas-fianza/detalle-devolucion/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <ViewDevolution />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/detalle-ejecucion/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <ViewExecution />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
           path="/cartas-fianza/renovar/:warrantyId" 
           element={
             <PrivateRoute>
               <RenewWarranty />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/devolver/:warrantyId" 
+          element={
+            <PrivateRoute>
+              <ReturnWarranty />
             </PrivateRoute>
           } 
         />
