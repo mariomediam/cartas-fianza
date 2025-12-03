@@ -139,8 +139,8 @@ const CartasFianza = () => {
   const shouldShowActionButtons = (warrantyHistories) => {
     if (!warrantyHistories || warrantyHistories.length === 0) return false;
 
-    // El último historial es el primero del array (ya viene ordenado por fecha descendente)
-    const lastHistory = warrantyHistories[0];
+    // El último historial es el último del array (viene ordenado por fecha ascendente)
+    const lastHistory = warrantyHistories[warrantyHistories.length - 1];
     return lastHistory.warranty_status_is_active === true;
   };
 
@@ -427,9 +427,11 @@ const CartasFianza = () => {
                         warrantyObject.warranties.length > 0 ? (
                           <div className="space-y-3">
                             {warrantyObject.warranties.map((warranty) => {
-                              // Obtener el último historial para el badge
+                              // Obtener el último historial para el badge (el más reciente está al final del array)
                               const latestHistory =
-                                warranty.warranty_histories?.[0];
+                                warranty.warranty_histories?.length > 0
+                                  ? warranty.warranty_histories[warranty.warranty_histories.length - 1]
+                                  : null;
                               const expiryBadge = latestHistory
                                 ? getExpiryBadge(latestHistory.validity_end)
                                 : null;

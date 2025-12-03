@@ -1,0 +1,49 @@
+Ahora vamos a crear en el frontend el formulario para renovar una carta. La página será de la siguiente manera:
+
+-) En la parte posterior el header
+-) Debajo el título "Renovar carta"
+-) Debajo la descripción del objeto de garantía
+-) Debajo un formulario conteniendo los siguientes campos:
+- Un campo input para el Número de carta
+- Un campo select para seleccionar la entidad financiera
+- Un campo input para ingresar la dirección de la entidad
+- Un campo input para la fecha de emisión
+- Un campo input para el inicio de vigencia
+- Un campo input para el fin de vigencia
+- Un campo select para el tipo de moneda
+- Un campo input number para el importe
+- Un campo input para el documento
+- Un campo text área para las observaciones
+- Un campo para los PDFs
+- Botones cancelar y grabar alineados al lado derecho
+
+Los campos deben estar ubicados así:
+-) Campo número de carta ocupa toda la fila
+-) Campos "Entidad financiera" y "Dirección de la entidad" en la misma fila
+-) Campos "Fecha de emisión", "Inicio de vigencia" y "Fin de vigencia" en la misma fila
+-) Campos "Tipo de moneda" e "Importe" en la misma fila
+-) Campo documento ocupa toda la fila
+-) Campo observaciones ocupa toda la fila
+
+Te doy un ejemplo del endpoint que debes ejecutar para grabar:
+curl --location 'http://127.0.0.1:8000/api/warranty-histories/renovar/' \
+--header 'Authorization: Token 686fc5426f0d7f09df219ac2eb18f33660f82271' \
+--form 'warranty_id="7"' \
+--form 'letter_number="D001-04520649"' \
+--form 'financial_entity="4"' \
+--form 'financial_entity_address="SAN ISIDRO-LIMA"' \
+--form 'issue_date="2026-02-25"' \
+--form 'validity_start="2026-02-25"' \
+--form 'validity_end="2026-08-25"' \
+--form 'currency_type="1"' \
+--form 'amount="1100000.00"' \
+--form 'warranty_status="2"' \
+--form 'reference_document="INFORME DE RENOVACIÓN"' \
+--form 'comments="Renovación por 6 meses"' \
+--form 'files=@"/C:/Users/mmedina/Downloads/ORGANIGRAMA MPP APROBADO 2023(1).pdf"'
+
+Consideraciones a tener en cuenta
+-) La página debe ser responsive
+-) Después de grabar debo regresar a la página anterior, ejecutar la búsqueda para actualizar el listado y poder observar la renovación.
+-) Te adjunto la imagen de la página.
+

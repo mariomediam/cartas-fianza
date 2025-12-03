@@ -315,7 +315,7 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
                             'warranty_status',
                             'currency_type',
                             'financial_entity'
-                        ).order_by('-issue_date')
+                        ).order_by('issue_date')
                     )
                 )
             )
