@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import useWarrantyFiltersStore from "../store/warrantyFiltersStore";
+import ViewWarrantyModal from "../components/ViewWarrantyModal";
+import ViewDevolutionModal from "../components/ViewDevolutionModal";
+import ViewExecutionModal from "../components/ViewExecutionModal";
 
 const CartasFianza = () => {
   const navigate = useNavigate();
@@ -22,6 +25,12 @@ const CartasFianza = () => {
   const [loading, setLoading] = useState(false);
   const [expandedWarrantyObjects, setExpandedWarrantyObjects] = useState({});
   const [expandedWarranties, setExpandedWarranties] = useState({});
+  
+  // Estados para los modales de detalle
+  const [showWarrantyModal, setShowWarrantyModal] = useState(false);
+  const [showDevolutionModal, setShowDevolutionModal] = useState(false);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   
   // Efecto para recargar la búsqueda cuando regresamos de agregar/editar
   useEffect(() => {
@@ -153,24 +162,60 @@ const CartasFianza = () => {
     navigate(`/cartas-fianza/devolver/${warrantyId}?description=${encodeURIComponent(warrantyObjectDescription || '')}`);
   };
 
-  const handleEjecutar = (warrantyId) => {
-    toast.info("Función Ejecutar en desarrollo");
-    // navigate(`/cartas-fianza/ejecutar/${warrantyId}`);
+  const handleEjecutar = (warrantyId, warrantyObjectDescription) => {
+    navigate(`/cartas-fianza/ejecutar/${warrantyId}?description=${encodeURIComponent(warrantyObjectDescription || '')}`);
   };
 
   const handleVerDetalle = (historyId, warrantyStatusId) => {
-    // Navegar a la página de detalle según el estado
+    // Abrir el modal correspondiente según el estado
+    setSelectedHistoryId(historyId);
     if (warrantyStatusId === 3) {
       // Devolución
-      navigate(`/cartas-fianza/detalle-devolucion/${historyId}`);
+      setShowDevolutionModal(true);
     } else if (warrantyStatusId === 6) {
       // Ejecución
-      navigate(`/cartas-fianza/detalle-ejecucion/${historyId}`);
+      setShowExecutionModal(true);
     } else {
       // Emisión (1) o Renovación (2) u otros
-      navigate(`/cartas-fianza/detalle/${historyId}`);
+      setShowWarrantyModal(true);
     }
   };
+  
+  // Cerrar modales
+  const closeWarrantyModal = () => {
+    setShowWarrantyModal(false);
+    setSelectedHistoryId(null);
+  };
+  
+  const closeDevolutionModal = () => {
+    setShowDevolutionModal(false);
+    setSelectedHistoryId(null);
+  };
+  
+  const closeExecutionModal = () => {
+    setShowExecutionModal(false);
+    setSelectedHistoryId(null);
+  };
+  
+  // Refrescar búsqueda después de eliminar desde el modal
+  const handleDeletedFromModal = useCallback(async () => {
+    if (filterValue.trim()) {
+      setLoading(true);
+      try {
+        const response = await api.get("/warranty-objects/buscar/", {
+          params: {
+            filter_type: filterType,
+            filter_value: filterValue.trim(),
+          },
+        });
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error("Error al refrescar:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [filterType, filterValue, setSearchResults]);
 
   const handleAgregarGarantia = (warrantyObjectId, warrantyObjectDescription) => {
     // Navegar a la página de agregar garantía pasando el ID y descripción
@@ -760,9 +805,9 @@ const CartasFianza = () => {
                                               </button>
                                               <button
                                                 onClick={() =>
-                                                  handleEjecutar(warranty.id)
+                                                  handleEjecutar(warranty.id, warrantyObject.description)
                                                 }
-                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 w-full md:w-auto"
+                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 w-full md:w-auto"
                                               >
                                                 <svg
                                                   className="w-4 h-4 mr-2"
@@ -807,6 +852,28 @@ const CartasFianza = () => {
           </div>
         )}
       </div>
+      
+      {/* Modales de detalle */}
+      <ViewWarrantyModal
+        isOpen={showWarrantyModal}
+        onClose={closeWarrantyModal}
+        warrantyHistoryId={selectedHistoryId}
+        onDeleted={handleDeletedFromModal}
+      />
+      
+      <ViewDevolutionModal
+        isOpen={showDevolutionModal}
+        onClose={closeDevolutionModal}
+        warrantyHistoryId={selectedHistoryId}
+        onDeleted={handleDeletedFromModal}
+      />
+      
+      <ViewExecutionModal
+        isOpen={showExecutionModal}
+        onClose={closeExecutionModal}
+        warrantyHistoryId={selectedHistoryId}
+        onDeleted={handleDeletedFromModal}
+      />
     </Layout>
   );
 };

@@ -16,6 +16,7 @@ import ViewDevolution from './pages/ViewDevolution';
 import ViewExecution from './pages/ViewExecution';
 import RenewWarranty from './pages/RenewWarranty';
 import ReturnWarranty from './pages/ReturnWarranty';
+import ExecuteWarranty from './pages/ExecuteWarranty';
 
 function App() {
   return (
@@ -142,6 +143,14 @@ function App() {
           element={
             <PrivateRoute>
               <ReturnWarranty />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/ejecutar/:warrantyId" 
+          element={
+            <PrivateRoute>
+              <ExecuteWarranty />
             </PrivateRoute>
           } 
         />
