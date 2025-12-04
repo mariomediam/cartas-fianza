@@ -80,9 +80,13 @@ const ViewWarrantyModal = ({ isOpen, onClose, warrantyHistoryId, onDeleted }) =>
   
   // Manejar modificación
   const handleModificar = () => {
-    toast.info('Función Modificar en desarrollo');
-    // onClose();
-    // navigate(`/cartas-fianza/editar/${warrantyHistoryId}`);
+    onClose();
+    // Navegar según el tipo de estado (Emisión = 1, Renovación = 2)
+    if (warrantyData?.warranty_status_id === 1) {
+      navigate(`/cartas-fianza/editar-emision/${warrantyHistoryId}`);
+    } else if (warrantyData?.warranty_status_id === 2) {
+      navigate(`/cartas-fianza/editar-renovacion/${warrantyHistoryId}`);
+    }
   };
   
   // Manejar eliminación - mostrar modal de confirmación

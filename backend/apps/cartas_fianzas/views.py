@@ -1440,3 +1440,628 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': f'Error al ejecutar la carta: {str(e)}'},
                 status=400
             )
+    
+    @action(detail=True, methods=['post'], url_path='modificar-emision')
+    def modificar_emision(self, request, pk=None):
+        """
+        Modifica una emisión de carta fianza (warranty_status_id = 1).
+        
+        POST /api/warranty-histories/{id}/modificar-emision/
+        
+        Permite modificar:
+        - Datos de la Garantía (Warranty): letter_type, contractor
+        - Datos del Historial (WarrantyHistory): letter_number, financial_entity,
+          financial_entity_address, issue_date, validity_start, validity_end,
+          currency_type, amount, reference_document, comments
+        - Archivos (WarrantyFile): agregar nuevos y/o eliminar existentes
+        
+        Campos opcionales (solo se actualizan si se envían):
+        - letter_type: ID del tipo de carta
+        - contractor: ID del contratista
+        - letter_number: Número de carta
+        - financial_entity: ID de la entidad financiera
+        - financial_entity_address: Dirección de la entidad
+        - issue_date: Fecha de emisión (YYYY-MM-DD)
+        - validity_start: Inicio de vigencia (YYYY-MM-DD)
+        - validity_end: Fin de vigencia (YYYY-MM-DD)
+        - currency_type: ID del tipo de moneda
+        - amount: Monto
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF a agregar
+        - files_to_delete: Lista de IDs de archivos a eliminar (JSON array)
+        
+        Validaciones:
+        1. El historial debe existir
+        2. El historial debe ser de tipo Emisión (warranty_status_id = 1)
+        3. El historial debe ser el último de la garantía
+        4. Las fechas deben ser válidas
+        5. El monto debe ser mayor a 0
+        """
+        from datetime import datetime
+        from django.db import transaction
+        import json
+        import os
+        from django.core.files.base import ContentFile
+        
+        try:
+            # Obtener el historial
+            try:
+                history = WarrantyHistory.objects.select_related(
+                    'warranty',
+                    'warranty_status'
+                ).get(id=pk)
+            except WarrantyHistory.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró el historial con ID {pk}'},
+                    status=404
+                )
+            
+            # Validar que es una Emisión (warranty_status_id = 1)
+            if history.warranty_status_id != 1:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar un historial de tipo Emisión',
+                        'current_status': history.warranty_status.description,
+                        'current_status_id': history.warranty_status_id
+                    },
+                    status=400
+                )
+            
+            # Verificar que es el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=history.warranty_id
+            ).aggregate(max_id=Max('id'))
+            
+            if history.id != latest_history['max_id']:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar el último historial de la garantía',
+                        'history_id': history.id,
+                        'latest_history_id': latest_history['max_id']
+                    },
+                    status=400
+                )
+            
+            # Obtener la garantía
+            warranty = history.warranty
+            
+            # Validar fechas si se proporcionan
+            issue_date = None
+            validity_start = None
+            validity_end = None
+            
+            if request.data.get('issue_date'):
+                try:
+                    issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para issue_date. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            if request.data.get('validity_start'):
+                try:
+                    validity_start = datetime.strptime(request.data.get('validity_start'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para validity_start. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            if request.data.get('validity_end'):
+                try:
+                    validity_end = datetime.strptime(request.data.get('validity_end'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para validity_end. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            # Validar coherencia de fechas
+            final_issue_date = issue_date if issue_date else history.issue_date
+            final_validity_start = validity_start if validity_start else history.validity_start
+            final_validity_end = validity_end if validity_end else history.validity_end
+            
+            if final_validity_start and final_validity_end:
+                if final_validity_start > final_validity_end:
+                    return Response(
+                        {'error': 'La fecha de fin de vigencia debe ser posterior al inicio'},
+                        status=400
+                    )
+            
+            if final_issue_date and final_validity_start:
+                if final_issue_date > final_validity_start:
+                    return Response(
+                        {'error': 'La fecha de inicio debe ser posterior o igual a la fecha de emisión'},
+                        status=400
+                    )
+            
+            # Validar monto si se proporciona
+            amount = None
+            if request.data.get('amount'):
+                try:
+                    amount = float(request.data.get('amount'))
+                    if amount <= 0:
+                        return Response(
+                            {'error': 'El monto debe ser mayor a 0'},
+                            status=400
+                        )
+                except ValueError:
+                    return Response(
+                        {'error': 'El monto debe ser un número válido'},
+                        status=400
+                    )
+            
+            # Validar entidades FK si se proporcionan
+            letter_type = None
+            contractor = None
+            financial_entity = None
+            currency_type = None
+            
+            if request.data.get('letter_type'):
+                try:
+                    letter_type = LetterType.objects.get(id=request.data.get('letter_type'))
+                except LetterType.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró el tipo de carta con ID {request.data.get("letter_type")}'},
+                        status=400
+                    )
+            
+            if request.data.get('contractor'):
+                try:
+                    contractor = Contractor.objects.get(id=request.data.get('contractor'))
+                except Contractor.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró el contratista con ID {request.data.get("contractor")}'},
+                        status=400
+                    )
+            
+            if request.data.get('financial_entity'):
+                try:
+                    financial_entity = FinancialEntity.objects.get(id=request.data.get('financial_entity'))
+                except FinancialEntity.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró la entidad financiera con ID {request.data.get("financial_entity")}'},
+                        status=400
+                    )
+            
+            if request.data.get('currency_type'):
+                try:
+                    currency_type = CurrencyType.objects.get(id=request.data.get('currency_type'))
+                except CurrencyType.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró el tipo de moneda con ID {request.data.get("currency_type")}'},
+                        status=400
+                    )
+            
+            # Validar archivos PDF si se proporcionan
+            files = request.FILES.getlist('files')
+            for file in files:
+                ext = os.path.splitext(file.name)[1].lower()
+                if ext != '.pdf':
+                    return Response(
+                        {'error': 'Solo se permiten archivos PDF'},
+                        status=400
+                    )
+                if file.size > 10 * 1024 * 1024:
+                    return Response(
+                        {'error': 'Los archivos no deben superar los 10MB'},
+                        status=400
+                    )
+            
+            # Obtener IDs de archivos a eliminar
+            files_to_delete = []
+            files_to_delete_raw = request.data.get('files_to_delete', '[]')
+            if files_to_delete_raw:
+                try:
+                    if isinstance(files_to_delete_raw, str):
+                        files_to_delete = json.loads(files_to_delete_raw)
+                    elif isinstance(files_to_delete_raw, list):
+                        files_to_delete = files_to_delete_raw
+                except json.JSONDecodeError:
+                    return Response(
+                        {'error': 'Formato inválido para files_to_delete. Debe ser un JSON array'},
+                        status=400
+                    )
+            
+            # Validar que los archivos a eliminar pertenecen a este historial
+            if files_to_delete:
+                existing_file_ids = list(WarrantyFile.objects.filter(
+                    warranty_history=history
+                ).values_list('id', flat=True))
+                
+                invalid_ids = [fid for fid in files_to_delete if fid not in existing_file_ids]
+                if invalid_ids:
+                    return Response(
+                        {
+                            'error': f'Los siguientes IDs de archivos no pertenecen a este historial: {invalid_ids}',
+                            'valid_file_ids': existing_file_ids
+                        },
+                        status=400
+                    )
+            
+            # === INICIO DE LA TRANSACCIÓN ===
+            with transaction.atomic():
+                # Actualizar la Garantía (Warranty) si hay cambios
+                warranty_updated = False
+                if letter_type:
+                    warranty.letter_type = letter_type
+                    warranty_updated = True
+                if contractor:
+                    warranty.contractor = contractor
+                    warranty_updated = True
+                
+                if warranty_updated:
+                    warranty.updated_by = request.user
+                    warranty.save()
+                
+                # Actualizar el Historial (WarrantyHistory)
+                if request.data.get('letter_number'):
+                    history.letter_number = request.data.get('letter_number')
+                if financial_entity:
+                    history.financial_entity = financial_entity
+                if request.data.get('financial_entity_address'):
+                    history.financial_entity_address = request.data.get('financial_entity_address')
+                if issue_date:
+                    history.issue_date = issue_date
+                if validity_start:
+                    history.validity_start = validity_start
+                if validity_end:
+                    history.validity_end = validity_end
+                if currency_type:
+                    history.currency_type = currency_type
+                if amount:
+                    history.amount = amount
+                if 'reference_document' in request.data:
+                    history.reference_document = request.data.get('reference_document', '')
+                if 'comments' in request.data:
+                    history.comments = request.data.get('comments', '')
+                
+                history.updated_by = request.user
+                history.save()
+                
+                # Eliminar archivos marcados para eliminación
+                if files_to_delete:
+                    WarrantyFile.objects.filter(
+                        id__in=files_to_delete,
+                        warranty_history=history
+                    ).delete()
+                
+                # Agregar nuevos archivos
+                for file in files:
+                    original_filename = os.path.splitext(file.name)[0]
+                    ext = os.path.splitext(file.name)[1].lower()
+                    
+                    # Crear el registro SIN el archivo para obtener el ID
+                    warranty_file = WarrantyFile.objects.create(
+                        warranty_history=history,
+                        file_name=original_filename,
+                        created_by=request.user
+                    )
+                    
+                    # Crear el nuevo nombre usando el ID
+                    new_filename = f'{warranty_file.id}{ext}'
+                    
+                    # Leer el contenido del archivo
+                    file.seek(0)
+                    file_content = file.read()
+                    
+                    # Guardar el archivo con el ID como nombre
+                    warranty_file.file.save(new_filename, ContentFile(file_content), save=True)
+            
+            # === FIN DE LA TRANSACCIÓN ===
+            
+            # Recargar el historial con todas las relaciones
+            history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(
+                history,
+                context={'request': request}
+            )
+            
+            return Response({
+                'message': 'Emisión modificada correctamente',
+                'data': serializer.data
+            }, status=200)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al modificar la emisión: {str(e)}'},
+                status=400
+            )
+    
+    @action(detail=True, methods=['post'], url_path='modificar-renovacion')
+    def modificar_renovacion(self, request, pk=None):
+        """
+        Modifica una renovación de carta fianza (warranty_status_id = 2).
+        
+        POST /api/warranty-histories/{id}/modificar-renovacion/
+        
+        Permite modificar:
+        - Datos del Historial (WarrantyHistory): letter_number, financial_entity,
+          financial_entity_address, issue_date, validity_start, validity_end,
+          currency_type, amount, reference_document, comments
+        - Archivos (WarrantyFile): agregar nuevos y/o eliminar existentes
+        
+        Campos opcionales (solo se actualizan si se envían):
+        - letter_number: Número de carta
+        - financial_entity: ID de la entidad financiera
+        - financial_entity_address: Dirección de la entidad
+        - issue_date: Fecha de emisión (YYYY-MM-DD)
+        - validity_start: Inicio de vigencia (YYYY-MM-DD)
+        - validity_end: Fin de vigencia (YYYY-MM-DD)
+        - currency_type: ID del tipo de moneda
+        - amount: Monto
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF a agregar
+        - files_to_delete: Lista de IDs de archivos a eliminar (JSON array)
+        
+        Validaciones:
+        1. El historial debe existir
+        2. El historial debe ser de tipo Renovación (warranty_status_id = 2)
+        3. El historial debe ser el último de la garantía
+        4. Las fechas deben ser válidas
+        5. El monto debe ser mayor a 0
+        """
+        from datetime import datetime
+        from django.db import transaction
+        import json
+        import os
+        from django.core.files.base import ContentFile
+        
+        try:
+            # Obtener el historial
+            try:
+                history = WarrantyHistory.objects.select_related(
+                    'warranty',
+                    'warranty_status'
+                ).get(id=pk)
+            except WarrantyHistory.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró el historial con ID {pk}'},
+                    status=404
+                )
+            
+            # Validar que es una Renovación (warranty_status_id = 2)
+            if history.warranty_status_id != 2:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar un historial de tipo Renovación',
+                        'current_status': history.warranty_status.description,
+                        'current_status_id': history.warranty_status_id
+                    },
+                    status=400
+                )
+            
+            # Verificar que es el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=history.warranty_id
+            ).aggregate(max_id=Max('id'))
+            
+            if history.id != latest_history['max_id']:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar el último historial de la garantía',
+                        'history_id': history.id,
+                        'latest_history_id': latest_history['max_id']
+                    },
+                    status=400
+                )
+            
+            # Validar fechas si se proporcionan
+            issue_date = None
+            validity_start = None
+            validity_end = None
+            
+            if request.data.get('issue_date'):
+                try:
+                    issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para issue_date. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            if request.data.get('validity_start'):
+                try:
+                    validity_start = datetime.strptime(request.data.get('validity_start'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para validity_start. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            if request.data.get('validity_end'):
+                try:
+                    validity_end = datetime.strptime(request.data.get('validity_end'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para validity_end. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            # Validar coherencia de fechas
+            final_issue_date = issue_date if issue_date else history.issue_date
+            final_validity_start = validity_start if validity_start else history.validity_start
+            final_validity_end = validity_end if validity_end else history.validity_end
+            
+            if final_validity_start and final_validity_end:
+                if final_validity_start > final_validity_end:
+                    return Response(
+                        {'error': 'La fecha de fin de vigencia debe ser posterior al inicio'},
+                        status=400
+                    )
+            
+            if final_issue_date and final_validity_start:
+                if final_issue_date > final_validity_start:
+                    return Response(
+                        {'error': 'La fecha de inicio debe ser posterior o igual a la fecha de emisión'},
+                        status=400
+                    )
+            
+            # Validar monto si se proporciona
+            amount = None
+            if request.data.get('amount'):
+                try:
+                    amount = float(request.data.get('amount'))
+                    if amount <= 0:
+                        return Response(
+                            {'error': 'El monto debe ser mayor a 0'},
+                            status=400
+                        )
+                except ValueError:
+                    return Response(
+                        {'error': 'El monto debe ser un número válido'},
+                        status=400
+                    )
+            
+            # Validar entidades FK si se proporcionan
+            financial_entity = None
+            currency_type = None
+            
+            if request.data.get('financial_entity'):
+                try:
+                    financial_entity = FinancialEntity.objects.get(id=request.data.get('financial_entity'))
+                except FinancialEntity.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró la entidad financiera con ID {request.data.get("financial_entity")}'},
+                        status=400
+                    )
+            
+            if request.data.get('currency_type'):
+                try:
+                    currency_type = CurrencyType.objects.get(id=request.data.get('currency_type'))
+                except CurrencyType.DoesNotExist:
+                    return Response(
+                        {'error': f'No se encontró el tipo de moneda con ID {request.data.get("currency_type")}'},
+                        status=400
+                    )
+            
+            # Validar archivos PDF si se proporcionan
+            files = request.FILES.getlist('files')
+            for file in files:
+                ext = os.path.splitext(file.name)[1].lower()
+                if ext != '.pdf':
+                    return Response(
+                        {'error': 'Solo se permiten archivos PDF'},
+                        status=400
+                    )
+                if file.size > 10 * 1024 * 1024:
+                    return Response(
+                        {'error': 'Los archivos no deben superar los 10MB'},
+                        status=400
+                    )
+            
+            with transaction.atomic():
+                # Actualizar el Historial (WarrantyHistory)
+                if request.data.get('letter_number'):
+                    history.letter_number = request.data.get('letter_number')
+                if financial_entity:
+                    history.financial_entity = financial_entity
+                if request.data.get('financial_entity_address'):
+                    history.financial_entity_address = request.data.get('financial_entity_address')
+                if issue_date:
+                    history.issue_date = issue_date
+                if validity_start:
+                    history.validity_start = validity_start
+                if validity_end:
+                    history.validity_end = validity_end
+                if currency_type:
+                    history.currency_type = currency_type
+                if amount:
+                    history.amount = amount
+                if 'reference_document' in request.data:
+                    history.reference_document = request.data.get('reference_document', '')
+                if 'comments' in request.data:
+                    history.comments = request.data.get('comments', '')
+                
+                history.updated_by = request.user
+                history.save()
+                
+                # Eliminar archivos existentes si se solicita
+                files_to_delete_ids = request.data.get('files_to_delete')
+                if files_to_delete_ids:
+                    try:
+                        if isinstance(files_to_delete_ids, str):
+                            files_to_delete_ids = json.loads(files_to_delete_ids)
+                        if not isinstance(files_to_delete_ids, list):
+                            raise ValueError("files_to_delete debe ser un array JSON")
+                        
+                        files_to_delete = WarrantyFile.objects.filter(
+                            id__in=files_to_delete_ids,
+                            warranty_history=history
+                        )
+                        
+                        for file_obj in files_to_delete:
+                            file_obj.file.delete(save=False)
+                            file_obj.delete()
+                            
+                    except json.JSONDecodeError:
+                        return Response(
+                            {'error': 'El campo files_to_delete debe ser un JSON array válido'},
+                            status=400
+                        )
+                    except ValueError as e:
+                        return Response(
+                            {'error': str(e)},
+                            status=400
+                        )
+                
+                # Agregar nuevos archivos
+                for file in request.FILES.getlist('files'):
+                    original_filename = os.path.splitext(file.name)[0]
+                    ext = os.path.splitext(file.name)[1].lower()
+                    
+                    warranty_file = WarrantyFile.objects.create(
+                        warranty_history=history,
+                        file_name=original_filename,
+                        created_by=request.user
+                    )
+                    
+                    new_filename = f'{warranty_file.id}{ext}'
+                    file.seek(0)
+                    file_content = file.read()
+                    warranty_file.file.save(new_filename, ContentFile(file_content), save=True)
+            
+            # Recargar el historial con todas las relaciones
+            history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(
+                history,
+                context={'request': request}
+            )
+            
+            return Response({
+                'message': 'Renovación modificada correctamente',
+                'data': serializer.data
+            }, status=200)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al modificar la renovación: {str(e)}'},
+                status=400
+            )
