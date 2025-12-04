@@ -18,6 +18,8 @@ import RenewWarranty from './pages/RenewWarranty';
 import ReturnWarranty from './pages/ReturnWarranty';
 import ExecuteWarranty from './pages/ExecuteWarranty';
 import EditEmision from './pages/EditEmision';
+import EditRenovacion from './pages/EditRenovacion';
+import EditDevolucion from './pages/EditDevolucion';
 
 function App() {
   return (
@@ -160,6 +162,22 @@ function App() {
           element={
             <PrivateRoute>
               <EditEmision />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/editar-renovacion/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <EditRenovacion />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/editar-devolucion/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <EditDevolucion />
             </PrivateRoute>
           } 
         />

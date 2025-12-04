@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../services/api';
 import { PDFIcon } from './icons';
 
 const ViewDevolutionModal = ({ isOpen, onClose, warrantyHistoryId, onDeleted }) => {
+  const navigate = useNavigate();
   // Estados
   const [devolutionData, setDevolutionData] = useState(null);
   const [previousHistory, setPreviousHistory] = useState(null);
@@ -95,7 +97,8 @@ const ViewDevolutionModal = ({ isOpen, onClose, warrantyHistoryId, onDeleted }) 
   
   // Manejar modificación
   const handleModificar = () => {
-    toast.info('Función Modificar en desarrollo');
+    onClose();
+    navigate(`/cartas-fianza/editar-devolucion/${warrantyHistoryId}`);
   };
   
   // Manejar eliminación
