@@ -786,7 +786,7 @@ const CartasFianza = () => {
                                                 onClick={() =>
                                                   handleDevolver(warranty.id, warrantyObject.description)
                                                 }
-                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 w-full md:w-auto"
+                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 w-full md:w-auto"
                                               >
                                                 <svg
                                                   className="w-4 h-4 mr-2"
@@ -807,7 +807,7 @@ const CartasFianza = () => {
                                                 onClick={() =>
                                                   handleEjecutar(warranty.id, warrantyObject.description)
                                                 }
-                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 w-full md:w-auto"
+                                                className="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 w-full md:w-auto"
                                               >
                                                 <svg
                                                   className="w-4 h-4 mr-2"
