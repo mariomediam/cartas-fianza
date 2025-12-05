@@ -20,6 +20,7 @@ import ExecuteWarranty from './pages/ExecuteWarranty';
 import EditEmision from './pages/EditEmision';
 import EditRenovacion from './pages/EditRenovacion';
 import EditDevolucion from './pages/EditDevolucion';
+import EditEjecucion from './pages/EditEjecucion';
 
 function App() {
   return (
@@ -178,6 +179,14 @@ function App() {
           element={
             <PrivateRoute>
               <EditDevolucion />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/cartas-fianza/editar-ejecucion/:warrantyHistoryId" 
+          element={
+            <PrivateRoute>
+              <EditEjecucion />
             </PrivateRoute>
           } 
         />

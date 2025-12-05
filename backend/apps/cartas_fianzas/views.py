@@ -2247,3 +2247,185 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': f'Error al modificar la devolución: {str(e)}'},
                 status=400
             )
+
+    @action(detail=True, methods=['post'], url_path='modificar-ejecucion')
+    def modificar_ejecucion(self, request, pk=None):
+        """
+        Modifica una ejecución de carta fianza (warranty_status_id = 6).
+        
+        POST /api/warranty-histories/{id}/modificar-ejecucion/
+        
+        Permite modificar:
+        - Datos del Historial (WarrantyHistory): issue_date, reference_document, comments
+        - Archivos (WarrantyFile): agregar nuevos y/o eliminar existentes
+        
+        Campos opcionales (solo se actualizan si se envían):
+        - issue_date: Fecha de ejecución (YYYY-MM-DD)
+        - reference_document: Documento de referencia
+        - comments: Observaciones
+        - files: Archivos PDF a agregar
+        - files_to_delete: Lista de IDs de archivos a eliminar (JSON array)
+        
+        Validaciones:
+        1. El historial debe existir
+        2. El historial debe ser de tipo Ejecución (warranty_status_id = 6)
+        3. El historial debe ser el último de la garantía
+        4. La fecha debe ser válida
+        """
+        from datetime import datetime
+        from django.db import transaction
+        import json
+        import os
+        from django.core.files.base import ContentFile
+        
+        try:
+            # Obtener el historial
+            try:
+                history = WarrantyHistory.objects.select_related(
+                    'warranty',
+                    'warranty_status'
+                ).get(id=pk)
+            except WarrantyHistory.DoesNotExist:
+                return Response(
+                    {'error': f'No se encontró el historial con ID {pk}'},
+                    status=404
+                )
+            
+            # Validar que es una Ejecución (warranty_status_id = 6)
+            if history.warranty_status_id != 6:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar un historial de tipo Ejecución',
+                        'current_status': history.warranty_status.description,
+                        'current_status_id': history.warranty_status_id
+                    },
+                    status=400
+                )
+            
+            # Verificar que es el último historial de la garantía
+            latest_history = WarrantyHistory.objects.filter(
+                warranty_id=history.warranty_id
+            ).aggregate(max_id=Max('id'))
+            
+            if history.id != latest_history['max_id']:
+                return Response(
+                    {
+                        'error': 'Solo se puede modificar el último historial de la garantía',
+                        'history_id': history.id,
+                        'latest_history_id': latest_history['max_id']
+                    },
+                    status=400
+                )
+            
+            # Validar fecha si se proporciona
+            issue_date = None
+            if request.data.get('issue_date'):
+                try:
+                    issue_date = datetime.strptime(request.data.get('issue_date'), '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Formato de fecha inválido para issue_date. Use YYYY-MM-DD'},
+                        status=400
+                    )
+            
+            # Validar archivos PDF si se proporcionan
+            files = request.FILES.getlist('files')
+            for file in files:
+                ext = os.path.splitext(file.name)[1].lower()
+                if ext != '.pdf':
+                    return Response(
+                        {'error': 'Solo se permiten archivos PDF'},
+                        status=400
+                    )
+                if file.size > 10 * 1024 * 1024:
+                    return Response(
+                        {'error': 'Los archivos no deben superar los 10MB'},
+                        status=400
+                    )
+            
+            with transaction.atomic():
+                # Actualizar el Historial (WarrantyHistory)
+                if issue_date:
+                    history.issue_date = issue_date
+                if 'reference_document' in request.data:
+                    history.reference_document = request.data.get('reference_document', '')
+                if 'comments' in request.data:
+                    history.comments = request.data.get('comments', '')
+                
+                history.updated_by = request.user
+                history.save()
+                
+                # Eliminar archivos existentes si se solicita
+                files_to_delete_ids = request.data.get('files_to_delete')
+                if files_to_delete_ids:
+                    try:
+                        if isinstance(files_to_delete_ids, str):
+                            files_to_delete_ids = json.loads(files_to_delete_ids)
+                        if not isinstance(files_to_delete_ids, list):
+                            raise ValueError("files_to_delete debe ser un array JSON")
+                        
+                        files_to_delete = WarrantyFile.objects.filter(
+                            id__in=files_to_delete_ids,
+                            warranty_history=history
+                        )
+                        
+                        for file_obj in files_to_delete:
+                            file_obj.file.delete(save=False)
+                            file_obj.delete()
+                            
+                    except json.JSONDecodeError:
+                        return Response(
+                            {'error': 'El campo files_to_delete debe ser un JSON array válido'},
+                            status=400
+                        )
+                    except ValueError as e:
+                        return Response(
+                            {'error': str(e)},
+                            status=400
+                        )
+                
+                # Agregar nuevos archivos
+                for file in request.FILES.getlist('files'):
+                    original_filename = os.path.splitext(file.name)[0]
+                    ext = os.path.splitext(file.name)[1].lower()
+                    
+                    warranty_file = WarrantyFile.objects.create(
+                        warranty_history=history,
+                        file_name=original_filename,
+                        created_by=request.user
+                    )
+                    
+                    new_filename = f'{warranty_file.id}{ext}'
+                    file.seek(0)
+                    file_content = file.read()
+                    warranty_file.file.save(new_filename, ContentFile(file_content), save=True)
+            
+            # Recargar el historial con todas las relaciones
+            history = WarrantyHistory.objects.select_related(
+                'warranty',
+                'warranty__warranty_object',
+                'warranty__letter_type',
+                'warranty__contractor',
+                'financial_entity',
+                'currency_type',
+                'warranty_status',
+                'created_by',
+                'updated_by'
+            ).prefetch_related('files').get(id=history.id)
+            
+            # Serializar la respuesta
+            serializer = WarrantyHistoryDetailSerializer(
+                history,
+                context={'request': request}
+            )
+            
+            return Response({
+                'message': 'Ejecución modificada correctamente',
+                'data': serializer.data
+            }, status=200)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al modificar la ejecución: {str(e)}'},
+                status=400
+            )
