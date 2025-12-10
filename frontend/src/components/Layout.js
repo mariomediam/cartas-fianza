@@ -82,6 +82,9 @@ const Layout = ({ children }) => {
       submenu: [
         { name: 'Reporte General', path: '/reportes/general' },
         { name: 'Cartas Vencidas', path: '/reportes/vencidas' },
+        { name: 'Cartas Vigentes', path: '/reportes/vigentes' },
+        { name: 'Cartas Devueltas', path: '/reportes/devueltas' },
+        { name: 'Cartas Ejecutadas', path: '/reportes/ejecutadas' },
         { name: 'Cartas por Vencer', path: '/reportes/por-vencer' },
         { name: 'Por Entidad Financiera', path: '/reportes/por-entidad' },
         { name: 'Por Contratista', path: '/reportes/por-contratista' },

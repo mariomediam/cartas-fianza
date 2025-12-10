@@ -22,6 +22,9 @@ import EditRenovacion from './pages/EditRenovacion';
 import EditDevolucion from './pages/EditDevolucion';
 import EditEjecucion from './pages/EditEjecucion';
 import ReporteVencidas from './pages/ReporteVencidas';
+import ReporteVigentes from './pages/ReporteVigentes';
+import ReporteDevueltas from './pages/ReporteDevueltas';
+import ReporteEjecutadas from './pages/ReporteEjecutadas';
 
 function App() {
   return (
@@ -198,6 +201,30 @@ function App() {
           element={
             <PrivateRoute>
               <ReporteVencidas />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/vigentes" 
+          element={
+            <PrivateRoute>
+              <ReporteVigentes />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/devueltas" 
+          element={
+            <PrivateRoute>
+              <ReporteDevueltas />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/ejecutadas" 
+          element={
+            <PrivateRoute>
+              <ReporteEjecutadas />
             </PrivateRoute>
           } 
         />
