@@ -21,6 +21,7 @@ import EditEmision from './pages/EditEmision';
 import EditRenovacion from './pages/EditRenovacion';
 import EditDevolucion from './pages/EditDevolucion';
 import EditEjecucion from './pages/EditEjecucion';
+import ReporteVencidas from './pages/ReporteVencidas';
 
 function App() {
   return (
@@ -187,6 +188,16 @@ function App() {
           element={
             <PrivateRoute>
               <EditEjecucion />
+            </PrivateRoute>
+          } 
+        />
+        
+        {/* Reportes */}
+        <Route 
+          path="/reportes/vencidas" 
+          element={
+            <PrivateRoute>
+              <ReporteVencidas />
             </PrivateRoute>
           } 
         />

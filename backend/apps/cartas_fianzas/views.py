@@ -27,7 +27,8 @@ from .serializers import (
     CurrencyTypeSerializer,
     WarrantySerializer,
     WarrantyObjectSearchSerializer,
-    WarrantyHistoryDetailSerializer
+    WarrantyHistoryDetailSerializer,
+    WarrantyHistoryVigentesPorFechaSerializer
 )
 
 
@@ -690,6 +691,457 @@ class WarrantyViewSet(viewsets.ModelViewSet):
         return Response({
             'count': count
         })
+    
+    @action(detail=False, methods=['get'], url_path='vigentes-por-fecha')
+    def vigentes_por_fecha(self, request):
+        """
+        Busca cartas fianza vigentes a una fecha específica con filtros opcionales.
+        
+        GET /api/warranties/vigentes-por-fecha/
+        
+        Parámetros:
+        - fecha (obligatorio): Fecha a la cual deben estar vigentes (formato YYYY-MM-DD)
+        - financial_entity_id (opcional): ID de la entidad financiera
+        - letter_type_id (opcional): ID del tipo de carta
+        - contractor_id (opcional): ID del contratista
+        - warranty_object_id (opcional): ID del objeto de garantía
+        
+        Ejemplo:
+        GET /api/warranties/vigentes-por-fecha/?fecha=2025-12-09&contractor_id=1
+        
+        Retorna las cartas fianza donde la fecha especificada está dentro
+        del rango de vigencia (validity_start <= fecha <= validity_end).
+        
+        Equivalente SQL:
+        SELECT warranty_histories.*, warranties.*, currency_types.symbol, ...
+        FROM warranty_histories
+        LEFT JOIN warranties ON warranty_histories.warranty_id = warranties.id
+        LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+        LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+        LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+        LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+        LEFT JOIN warranty_objects ON warranties.warranty_object_id = warranty_objects.id
+        WHERE '2025-12-09' BETWEEN validity_start AND validity_end
+        """
+        from datetime import datetime
+        
+        # Obtener parámetros
+        fecha_str = request.query_params.get('fecha', None)
+        financial_entity_id = request.query_params.get('financial_entity_id', None)
+        letter_type_id = request.query_params.get('letter_type_id', None)
+        contractor_id = request.query_params.get('contractor_id', None)
+        warranty_object_id = request.query_params.get('warranty_object_id', None)
+        
+        # Validar fecha obligatoria
+        if not fecha_str:
+            return Response({
+                'error': 'El parámetro "fecha" es obligatorio (formato YYYY-MM-DD)'
+            }, status=400)
+        
+        # Parsear la fecha
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'error': 'El formato de fecha debe ser YYYY-MM-DD'
+            }, status=400)
+        
+        # Construir queryset base con filtro de fecha
+        # WHERE fecha BETWEEN validity_start AND validity_end
+        queryset = WarrantyHistory.objects.filter(
+            validity_start__lte=fecha,
+            validity_end__gte=fecha
+        ).select_related(
+            'warranty',
+            'warranty__contractor',
+            'warranty__letter_type',
+            'warranty__warranty_object',
+            'currency_type',
+            'financial_entity'
+        )
+        
+        # Aplicar filtros opcionales
+        if financial_entity_id:
+            queryset = queryset.filter(financial_entity_id=financial_entity_id)
+        
+        if letter_type_id:
+            queryset = queryset.filter(warranty__letter_type_id=letter_type_id)
+        
+        if contractor_id:
+            queryset = queryset.filter(warranty__contractor_id=contractor_id)
+        
+        if warranty_object_id:
+            queryset = queryset.filter(warranty__warranty_object_id=warranty_object_id)
+        
+        # Ordenar por número de carta
+        queryset = queryset.order_by('letter_number')
+        
+        # Serializar resultados
+        serializer = WarrantyHistoryVigentesPorFechaSerializer(queryset, many=True)
+        
+        return Response({
+            'count': queryset.count(),
+            'fecha_consulta': fecha_str,
+            'filtros_aplicados': {
+                'financial_entity_id': financial_entity_id,
+                'letter_type_id': letter_type_id,
+                'contractor_id': contractor_id,
+                'warranty_object_id': warranty_object_id
+            },
+            'results': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'], url_path='vencidas-por-fecha')
+    def vencidas_por_fecha(self, request):
+        """
+        Busca cartas fianza vencidas a una fecha específica con filtros opcionales.
+        
+        GET /api/warranties/vencidas-por-fecha/
+        
+        Este endpoint obtiene el ÚLTIMO historial de cada garantía y filtra
+        aquellas que están vencidas (validity_end < fecha) y tienen estado activo.
+        
+        Parámetros:
+        - fecha (obligatorio): Fecha de filtro (formato YYYY-MM-DD). 
+                               Se buscan cartas vencidas antes de esta fecha.
+        - financial_entity_id (opcional): ID de la entidad financiera
+        - letter_type_id (opcional): ID del tipo de carta
+        - contractor_id (opcional): ID del contratista
+        - warranty_object_id (opcional): ID del objeto de garantía
+        
+        Ejemplo:
+        GET /api/warranties/vencidas-por-fecha/?fecha=2026-08-27&contractor_id=1
+        
+        Lógica:
+        1. Obtiene el último historial (max(id)) de cada garantía
+        2. Filtra por estados activos (warranty_status.is_active = True)
+        3. Filtra donde validity_end < fecha (vencidas)
+        4. Aplica filtros opcionales
+        
+        Equivalente SQL:
+        SELECT warranty_histories.*, warranties.*, ...
+        FROM (SELECT warranty_id, MAX(id) as history_id 
+              FROM warranty_histories GROUP BY warranty_id) as TMaxHistory
+        LEFT JOIN warranty_histories ON TMaxHistory.history_id = warranty_histories.id
+        LEFT JOIN warranty_statuses ON warranty_histories.warranty_status_id = warranty_statuses.id
+        LEFT JOIN warranties ON warranty_histories.warranty_id = warranties.id
+        ...
+        WHERE warranty_statuses.is_active = true
+        AND warranty_histories.validity_end < '2026-08-27'
+        """
+        from datetime import datetime
+        
+        # Obtener parámetros
+        fecha_str = request.query_params.get('fecha', None)
+        financial_entity_id = request.query_params.get('financial_entity_id', None)
+        letter_type_id = request.query_params.get('letter_type_id', None)
+        contractor_id = request.query_params.get('contractor_id', None)
+        warranty_object_id = request.query_params.get('warranty_object_id', None)
+        
+        # Validar fecha obligatoria
+        if not fecha_str:
+            return Response({
+                'error': 'El parámetro "fecha" es obligatorio (formato YYYY-MM-DD)'
+            }, status=400)
+        
+        # Parsear la fecha
+        try:
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'error': 'El formato de fecha debe ser YYYY-MM-DD'
+            }, status=400)
+        
+        # Subconsulta para obtener el ID del último historial de cada garantía
+        # Equivalente a: SELECT warranty_id, MAX(id) FROM warranty_histories GROUP BY warranty_id
+        latest_history_subquery = WarrantyHistory.objects.filter(
+            warranty_id=OuterRef('warranty_id')
+        ).order_by('-id').values('id')[:1]
+        
+        # Consulta principal: filtrar por último historial, estado activo y vencidas
+        queryset = WarrantyHistory.objects.filter(
+            id__in=Subquery(latest_history_subquery),
+            warranty_status__is_active=True,
+            validity_end__lt=fecha
+        ).select_related(
+            'warranty',
+            'warranty__contractor',
+            'warranty__letter_type',
+            'warranty__warranty_object',
+            'currency_type',
+            'financial_entity'
+        )
+        
+        # Aplicar filtros opcionales
+        if financial_entity_id:
+            queryset = queryset.filter(financial_entity_id=financial_entity_id)
+        
+        if letter_type_id:
+            queryset = queryset.filter(warranty__letter_type_id=letter_type_id)
+        
+        if contractor_id:
+            queryset = queryset.filter(warranty__contractor_id=contractor_id)
+        
+        if warranty_object_id:
+            queryset = queryset.filter(warranty__warranty_object_id=warranty_object_id)
+        
+        # Ordenar por fecha de vencimiento (más antiguas primero)
+        queryset = queryset.order_by('validity_end')
+        
+        # Serializar resultados
+        serializer = WarrantyHistoryVigentesPorFechaSerializer(queryset, many=True)
+        
+        return Response({
+            'count': queryset.count(),
+            'fecha_consulta': fecha_str,
+            'filtros_aplicados': {
+                'financial_entity_id': financial_entity_id,
+                'letter_type_id': letter_type_id,
+                'contractor_id': contractor_id,
+                'warranty_object_id': warranty_object_id
+            },
+            'results': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'], url_path='devueltas-por-periodo')
+    def devueltas_por_periodo(self, request):
+        """
+        Busca cartas fianza devueltas en un período específico con filtros opcionales.
+        
+        GET /api/warranties/devueltas-por-periodo/
+        
+        Este endpoint busca todos los historiales con estado de devolución (warranty_status_id = 3)
+        cuya fecha de emisión (issue_date) está dentro del período especificado.
+        
+        Parámetros:
+        - fecha_desde (obligatorio): Fecha de inicio del período (formato YYYY-MM-DD)
+        - fecha_hasta (obligatorio): Fecha de fin del período (formato YYYY-MM-DD)
+        - financial_entity_id (opcional): ID de la entidad financiera
+        - letter_type_id (opcional): ID del tipo de carta
+        - contractor_id (opcional): ID del contratista
+        - warranty_object_id (opcional): ID del objeto de garantía
+        
+        Ejemplo:
+        GET /api/warranties/devueltas-por-periodo/?fecha_desde=2025-01-01&fecha_hasta=2025-12-31
+        
+        Lógica:
+        1. Filtra por warranty_status_id = 3 (Devolución)
+        2. Filtra por issue_date entre fecha_desde y fecha_hasta
+        3. Aplica filtros opcionales
+        
+        Equivalente SQL:
+        SELECT warranty_histories.*, warranties.*, ...
+        FROM warranty_histories
+        LEFT JOIN warranties ON warranty_histories.warranty_id = warranties.id
+        LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+        LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+        LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+        LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+        LEFT JOIN warranty_objects ON warranties.warranty_object_id = warranty_objects.id
+        WHERE warranty_histories.issue_date BETWEEN '2025-01-01' AND '2025-12-31'
+        AND warranty_histories.warranty_status_id = 3
+        """
+        from datetime import datetime
+        
+        # ID del estado de devolución
+        DEVOLUCION_STATUS_ID = 3
+        
+        # Obtener parámetros
+        fecha_desde_str = request.query_params.get('fecha_desde', None)
+        fecha_hasta_str = request.query_params.get('fecha_hasta', None)
+        financial_entity_id = request.query_params.get('financial_entity_id', None)
+        letter_type_id = request.query_params.get('letter_type_id', None)
+        contractor_id = request.query_params.get('contractor_id', None)
+        warranty_object_id = request.query_params.get('warranty_object_id', None)
+        
+        # Validar fechas obligatorias
+        if not fecha_desde_str or not fecha_hasta_str:
+            return Response({
+                'error': 'Los parámetros "fecha_desde" y "fecha_hasta" son obligatorios (formato YYYY-MM-DD)'
+            }, status=400)
+        
+        # Parsear las fechas
+        try:
+            fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_hasta = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'error': 'El formato de fecha debe ser YYYY-MM-DD'
+            }, status=400)
+        
+        # Validar que fecha_desde sea menor o igual a fecha_hasta
+        if fecha_desde > fecha_hasta:
+            return Response({
+                'error': 'La fecha_desde debe ser menor o igual a fecha_hasta'
+            }, status=400)
+        
+        # Consulta principal: filtrar por estado de devolución y rango de fechas
+        queryset = WarrantyHistory.objects.filter(
+            warranty_status_id=DEVOLUCION_STATUS_ID,
+            issue_date__gte=fecha_desde,
+            issue_date__lte=fecha_hasta
+        ).select_related(
+            'warranty',
+            'warranty__contractor',
+            'warranty__letter_type',
+            'warranty__warranty_object',
+            'currency_type',
+            'financial_entity'
+        )
+        
+        # Aplicar filtros opcionales
+        if financial_entity_id:
+            queryset = queryset.filter(financial_entity_id=financial_entity_id)
+        
+        if letter_type_id:
+            queryset = queryset.filter(warranty__letter_type_id=letter_type_id)
+        
+        if contractor_id:
+            queryset = queryset.filter(warranty__contractor_id=contractor_id)
+        
+        if warranty_object_id:
+            queryset = queryset.filter(warranty__warranty_object_id=warranty_object_id)
+        
+        # Ordenar por fecha de emisión
+        queryset = queryset.order_by('issue_date')
+        
+        # Serializar resultados
+        serializer = WarrantyHistoryVigentesPorFechaSerializer(queryset, many=True)
+        
+        return Response({
+            'count': queryset.count(),
+            'periodo': {
+                'fecha_desde': fecha_desde_str,
+                'fecha_hasta': fecha_hasta_str
+            },
+            'filtros_aplicados': {
+                'financial_entity_id': financial_entity_id,
+                'letter_type_id': letter_type_id,
+                'contractor_id': contractor_id,
+                'warranty_object_id': warranty_object_id
+            },
+            'results': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'], url_path='ejecutadas-por-periodo')
+    def ejecutadas_por_periodo(self, request):
+        """
+        Busca cartas fianza ejecutadas en un período específico con filtros opcionales.
+        
+        GET /api/warranties/ejecutadas-por-periodo/
+        
+        Este endpoint busca todos los historiales con estado de ejecución (warranty_status_id = 6)
+        cuya fecha de emisión (issue_date) está dentro del período especificado.
+        
+        Parámetros:
+        - fecha_desde (obligatorio): Fecha de inicio del período (formato YYYY-MM-DD)
+        - fecha_hasta (obligatorio): Fecha de fin del período (formato YYYY-MM-DD)
+        - financial_entity_id (opcional): ID de la entidad financiera
+        - letter_type_id (opcional): ID del tipo de carta
+        - contractor_id (opcional): ID del contratista
+        - warranty_object_id (opcional): ID del objeto de garantía
+        
+        Ejemplo:
+        GET /api/warranties/ejecutadas-por-periodo/?fecha_desde=2025-01-01&fecha_hasta=2025-12-31
+        
+        Lógica:
+        1. Filtra por warranty_status_id = 6 (Ejecución)
+        2. Filtra por issue_date entre fecha_desde y fecha_hasta
+        3. Aplica filtros opcionales
+        
+        Equivalente SQL:
+        SELECT warranty_histories.*, warranties.*, ...
+        FROM warranty_histories
+        LEFT JOIN warranties ON warranty_histories.warranty_id = warranties.id
+        LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+        LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+        LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+        LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+        LEFT JOIN warranty_objects ON warranties.warranty_object_id = warranty_objects.id
+        WHERE warranty_histories.issue_date BETWEEN '2025-01-01' AND '2025-12-31'
+        AND warranty_histories.warranty_status_id = 6
+        """
+        from datetime import datetime
+        
+        # ID del estado de ejecución
+        EJECUCION_STATUS_ID = 6
+        
+        # Obtener parámetros
+        fecha_desde_str = request.query_params.get('fecha_desde', None)
+        fecha_hasta_str = request.query_params.get('fecha_hasta', None)
+        financial_entity_id = request.query_params.get('financial_entity_id', None)
+        letter_type_id = request.query_params.get('letter_type_id', None)
+        contractor_id = request.query_params.get('contractor_id', None)
+        warranty_object_id = request.query_params.get('warranty_object_id', None)
+        
+        # Validar fechas obligatorias
+        if not fecha_desde_str or not fecha_hasta_str:
+            return Response({
+                'error': 'Los parámetros "fecha_desde" y "fecha_hasta" son obligatorios (formato YYYY-MM-DD)'
+            }, status=400)
+        
+        # Parsear las fechas
+        try:
+            fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d').date()
+            fecha_hasta = datetime.strptime(fecha_hasta_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'error': 'El formato de fecha debe ser YYYY-MM-DD'
+            }, status=400)
+        
+        # Validar que fecha_desde sea menor o igual a fecha_hasta
+        if fecha_desde > fecha_hasta:
+            return Response({
+                'error': 'La fecha_desde debe ser menor o igual a fecha_hasta'
+            }, status=400)
+        
+        # Consulta principal: filtrar por estado de ejecución y rango de fechas
+        queryset = WarrantyHistory.objects.filter(
+            warranty_status_id=EJECUCION_STATUS_ID,
+            issue_date__gte=fecha_desde,
+            issue_date__lte=fecha_hasta
+        ).select_related(
+            'warranty',
+            'warranty__contractor',
+            'warranty__letter_type',
+            'warranty__warranty_object',
+            'currency_type',
+            'financial_entity'
+        )
+        
+        # Aplicar filtros opcionales
+        if financial_entity_id:
+            queryset = queryset.filter(financial_entity_id=financial_entity_id)
+        
+        if letter_type_id:
+            queryset = queryset.filter(warranty__letter_type_id=letter_type_id)
+        
+        if contractor_id:
+            queryset = queryset.filter(warranty__contractor_id=contractor_id)
+        
+        if warranty_object_id:
+            queryset = queryset.filter(warranty__warranty_object_id=warranty_object_id)
+        
+        # Ordenar por fecha de emisión
+        queryset = queryset.order_by('issue_date')
+        
+        # Serializar resultados
+        serializer = WarrantyHistoryVigentesPorFechaSerializer(queryset, many=True)
+        
+        return Response({
+            'count': queryset.count(),
+            'periodo': {
+                'fecha_desde': fecha_desde_str,
+                'fecha_hasta': fecha_hasta_str
+            },
+            'filtros_aplicados': {
+                'financial_entity_id': financial_entity_id,
+                'letter_type_id': letter_type_id,
+                'contractor_id': contractor_id,
+                'warranty_object_id': warranty_object_id
+            },
+            'results': serializer.data
+        })
 
 
 class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1141,13 +1593,27 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                     status=400
                 )
             
+            # Obtener el financial_entity del último historial que lo tenga
+            # Buscar en el historial más reciente con financial_entity no nulo
+            history_with_financial_entity = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id,
+                financial_entity__isnull=False
+            ).order_by('-id').first()
+            
+            # Obtener el financial_entity del historial encontrado (o None si no hay ninguno)
+            financial_entity_from_history = (
+                history_with_financial_entity.financial_entity 
+                if history_with_financial_entity 
+                else None
+            )
+            
             # Crear el nuevo historial de devolución
-            # Los campos no aplicables van en null
+            # Los campos no aplicables van en null, excepto financial_entity que se hereda
             new_history = WarrantyHistory.objects.create(
                 warranty=warranty,
                 warranty_status=devolution_status,
                 letter_number=None,  # No aplica para devolución
-                financial_entity=None,  # No aplica para devolución
+                financial_entity=financial_entity_from_history,  # Se hereda del historial anterior
                 financial_entity_address=None,  # No aplica para devolución
                 issue_date=issue_date,
                 validity_start=None,  # No aplica para devolución
@@ -1389,13 +1855,27 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                     status=400
                 )
             
+            # Obtener el financial_entity del último historial que lo tenga
+            # Buscar en el historial más reciente con financial_entity no nulo
+            history_with_financial_entity = WarrantyHistory.objects.filter(
+                warranty_id=warranty_id,
+                financial_entity__isnull=False
+            ).order_by('-id').first()
+            
+            # Obtener el financial_entity del historial encontrado (o None si no hay ninguno)
+            financial_entity_from_history = (
+                history_with_financial_entity.financial_entity 
+                if history_with_financial_entity 
+                else None
+            )
+            
             # Crear el nuevo historial de ejecución
-            # Los campos no aplicables van en null
+            # Los campos no aplicables van en null, excepto financial_entity que se hereda
             new_history = WarrantyHistory.objects.create(
                 warranty=warranty,
                 warranty_status=execution_status,
                 letter_number=None,  # No aplica para ejecución
-                financial_entity=None,  # No aplica para ejecución
+                financial_entity=financial_entity_from_history,  # Se hereda del historial anterior
                 financial_entity_address=None,  # No aplica para ejecución
                 issue_date=issue_date,
                 validity_start=None,  # No aplica para ejecución

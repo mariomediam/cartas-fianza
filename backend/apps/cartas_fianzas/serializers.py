@@ -890,3 +890,96 @@ class WarrantyHistoryDetailSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = fields  # Todos son de solo lectura para el GET
+
+
+# ========== Serializer para Búsqueda de Vigentes por Fecha ==========
+
+class WarrantyHistoryVigentesPorFechaSerializer(serializers.ModelSerializer):
+    """
+    Serializer para la búsqueda de cartas fianza vigentes por fecha.
+    
+    Retorna la información de warranty_histories con los datos relacionados
+    de warranties, currency_types, financial_entities, contractors, 
+    letter_types y warranty_objects.
+    
+    Equivalente a la consulta SQL:
+    SELECT warranty_histories.id, warranty_histories.letter_number, ...
+    FROM warranty_histories
+    LEFT JOIN warranties ON warranty_histories.warranty_id = warranties.id
+    LEFT JOIN currency_types ON warranty_histories.currency_type_id = currency_types.id
+    LEFT JOIN financial_entities ON warranty_histories.financial_entity_id = financial_entities.id
+    LEFT JOIN contractors ON warranties.contractor_id = contractors.id
+    LEFT JOIN letter_types ON warranties.letter_type_id = letter_types.id
+    LEFT JOIN warranty_objects ON warranties.warranty_object_id = warranty_objects.id
+    WHERE '2025-12-09' BETWEEN validity_start AND validity_end
+    """
+    # Campos de warranty_histories
+    warranty_id = serializers.IntegerField(source='warranty.id', read_only=True)
+    
+    # Campos de currency_types
+    currency_type_symbol = serializers.CharField(source='currency_type.symbol', read_only=True)
+    
+    # Campos de financial_entities
+    financial_entity_description = serializers.CharField(
+        source='financial_entity.description', 
+        read_only=True
+    )
+    
+    # Campos de contractors
+    contractor_id = serializers.IntegerField(source='warranty.contractor.id', read_only=True)
+    contractor_business_name = serializers.CharField(
+        source='warranty.contractor.business_name', 
+        read_only=True
+    )
+    contractor_ruc = serializers.CharField(source='warranty.contractor.ruc', read_only=True)
+    
+    # Campos de letter_types
+    letter_type_id = serializers.IntegerField(source='warranty.letter_type.id', read_only=True)
+    letter_type_description = serializers.CharField(
+        source='warranty.letter_type.description', 
+        read_only=True
+    )
+    
+    # Campos de warranty_objects
+    warranty_object_id = serializers.IntegerField(
+        source='warranty.warranty_object.id', 
+        read_only=True
+    )
+    warranty_object_description = serializers.CharField(
+        source='warranty.warranty_object.description', 
+        read_only=True
+    )
+    warranty_object_cui = serializers.CharField(
+        source='warranty.warranty_object.cui', 
+        read_only=True
+    )
+    
+    class Meta:
+        model = WarrantyHistory
+        fields = [
+            # Campos del historial
+            'id',
+            'letter_number',
+            'issue_date',
+            'validity_start',
+            'validity_end',
+            'amount',
+            'currency_type_id',
+            'financial_entity_id',
+            'warranty_id',
+            
+            # Campos relacionados de warranty
+            'contractor_id',
+            'letter_type_id',
+            'warranty_object_id',
+            
+            # Descripciones y datos adicionales
+            'currency_type_symbol',
+            'financial_entity_description',
+            'contractor_business_name',
+            'contractor_ruc',
+            'letter_type_description',
+            'warranty_object_description',
+            'warranty_object_cui',
+        ]
+        read_only_fields = fields
