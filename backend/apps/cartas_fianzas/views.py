@@ -296,6 +296,7 @@ class ContractorViewSet(viewsets.ModelViewSet):
     - PUT /api/contractors/{id}/ - Actualizar un contratista
     - PATCH /api/contractors/{id}/ - Actualizar parcialmente un contratista
     - DELETE /api/contractors/{id}/ - Eliminar un contratista
+    - GET /api/contractors/{id}/reporte-cartas/ - Obtener cartas fianza por contratista
     """
     queryset = Contractor.objects.all()
     serializer_class = ContractorSerializer
@@ -313,6 +314,82 @@ class ContractorViewSet(viewsets.ModelViewSet):
     
     # Ordenamiento por defecto
     ordering = ['business_name']
+    
+    @action(detail=True, methods=['get'], url_path='reporte-cartas')
+    def reporte_cartas(self, request, pk=None):
+        """
+        Obtiene el reporte de cartas fianza para un contratista específico.
+        
+        Utiliza el procedimiento almacenado 'get_warranty_by_contractor' que retorna
+        información consolidada de las cartas fianza, considerando si el último
+        estado está activo o no para determinar qué datos mostrar.
+        
+        GET /api/contractors/{id}/reporte-cartas/
+        
+        Retorna:
+        - warranty_histories_id: ID del historial de garantía
+        - letter_number: Número de carta (del último o penúltimo según estado)
+        - issue_date: Fecha de emisión
+        - validity_start: Inicio de vigencia
+        - validity_end: Fin de vigencia
+        - amount: Monto
+        - currency_type_id: ID del tipo de moneda
+        - financial_entity_id: ID de la entidad financiera
+        - warranty_id: ID de la garantía
+        - contractor_id: ID del contratista
+        - letter_type_id: ID del tipo de carta
+        - warranty_object_id: ID del objeto de garantía
+        - symbol: Símbolo de la moneda
+        - financial_entities_description: Descripción de la entidad financiera
+        - business_name: Razón social del contratista
+        - ruc: RUC del contratista
+        - letter_types_description: Descripción del tipo de carta
+        - warranty_objects_description: Descripción del objeto de garantía
+        - cui: Código Único de Inversión
+        - warranty_statuses_last_description: Descripción del último estado
+        """
+        contractor_id = pk
+        
+        # Verificar que el contratista existe
+        try:
+            contractor = Contractor.objects.get(pk=contractor_id)
+        except Contractor.DoesNotExist:
+            return Response(
+                {'error': f'Contratista con ID {contractor_id} no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            with connection.cursor() as cursor:
+                # Llamar al procedimiento almacenado
+                cursor.execute("SELECT * FROM get_warranty_by_contractor(%s)", [contractor_id])
+                
+                # Obtener los nombres de las columnas
+                columns = [col[0] for col in cursor.description]
+                
+                # Convertir los resultados a diccionarios
+                results = []
+                for row in cursor.fetchall():
+                    row_dict = dict(zip(columns, row))
+                    # Convertir Decimal a float para serialización JSON
+                    for key, value in row_dict.items():
+                        if hasattr(value, '__float__'):
+                            row_dict[key] = float(value)
+                    results.append(row_dict)
+                
+            return Response({
+                'contractor_id': contractor_id,
+                'contractor_business_name': contractor.business_name,
+                'contractor_ruc': contractor.ruc,
+                'count': len(results),
+                'results': results
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al ejecutar el procedimiento almacenado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class WarrantyObjectViewSet(viewsets.ModelViewSet):

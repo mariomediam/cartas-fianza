@@ -27,6 +27,7 @@ import ReporteDevueltas from './pages/ReporteDevueltas';
 import ReporteEjecutadas from './pages/ReporteEjecutadas';
 import ReportePorObjeto from './pages/ReportePorObjeto';
 import ReportePorEntidad from './pages/ReportePorEntidad';
+import ReportePorContratista from './pages/ReportePorContratista';
 
 function App() {
   return (
@@ -243,6 +244,14 @@ function App() {
           element={
             <PrivateRoute>
               <ReportePorEntidad />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/por-contratista" 
+          element={
+            <PrivateRoute>
+              <ReportePorContratista />
             </PrivateRoute>
           } 
         />
