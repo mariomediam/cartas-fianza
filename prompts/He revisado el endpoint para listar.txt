@@ -1,0 +1,53 @@
+He revisado el endpoint para listar las cartas fianza ejecutadas por periodo. warranties/ejecutadas-por-periodo/ y quiero modificarlo para recuperar también la data de la carta anterior a la ejecucion (que la llamare original).
+
+Te paso la consulta SQL para que la conviertas a la ORM
+
+select  warranty_histories_ejecucion.id ,
+	warranty_histories_original.letter_number as letter_number_orig,
+	warranty_histories_ejecucion.issue_date,
+	warranty_histories_original.validity_start as validity_start_orig,
+	warranty_histories_original.validity_end as validity_end_orig,
+	warranty_histories_original.amount as amount_orig,
+	warranty_histories_original.currency_type_id as currency_type_id_orig,
+	warranty_histories_original.financial_entity_id as financial_entity_id_orig,
+	warranty_histories_ejecucion.warranty_id,
+	warranties.contractor_id,
+	warranties.letter_type_id,
+	warranties.warranty_object_id,
+	currency_types.symbol as symbol_orig,
+	financial_entities.description as financial_entities_description_orig,
+	contractors.business_name,
+	contractors.ruc,
+	letter_types.description as letter_types_description,
+	warranty_objects.description as warranty_objects_description,
+	warranty_objects.cui
+from (select TEjec.id_history as id_history_devol, 
+	TEjec.warranty_id, 
+	max(warranty_histories.id) as id_history_orig
+	from (select id as id_history,
+	warranty_id
+	from warranty_histories
+	where warranty_histories.issue_date between '2025-01-01' and '2025-12-31'
+	and warranty_histories.warranty_status_id = 6) as TEjec
+	inner join warranty_histories
+	on TEjec.warranty_id = warranty_histories.warranty_id
+	and warranty_histories.id < TEjec.id_history
+	group by TEjec.id_history, TEjec.warranty_id) as TEjecuciones
+left join warranty_histories as warranty_histories_ejecucion
+on TEjecuciones.id_history_devol = warranty_histories_ejecucion.id
+left join warranty_histories as warranty_histories_original
+on TEjecuciones.id_history_orig = warranty_histories_original.id
+left join warranties
+on warranty_histories_ejecucion.warranty_id = warranties.id
+left join currency_types
+on warranty_histories_original.currency_type_id = currency_types.id
+left join financial_entities
+on warranty_histories_original.financial_entity_id = financial_entities.id
+left join contractors 
+on warranties.contractor_id = contractors.id
+left join letter_types
+on warranties.letter_type_id = letter_types.id
+left join warranty_objects
+on warranties.warranty_object_id = warranty_objects.id
+left join warranty_statuses
+on warranty_histories_ejecucion.warranty_status_id = warranty_statuses.id

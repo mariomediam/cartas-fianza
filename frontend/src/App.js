@@ -25,6 +25,8 @@ import ReporteVencidas from './pages/ReporteVencidas';
 import ReporteVigentes from './pages/ReporteVigentes';
 import ReporteDevueltas from './pages/ReporteDevueltas';
 import ReporteEjecutadas from './pages/ReporteEjecutadas';
+import ReportePorObjeto from './pages/ReportePorObjeto';
+import ReportePorEntidad from './pages/ReportePorEntidad';
 
 function App() {
   return (
@@ -225,6 +227,22 @@ function App() {
           element={
             <PrivateRoute>
               <ReporteEjecutadas />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/por-objeto" 
+          element={
+            <PrivateRoute>
+              <ReportePorObjeto />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/por-entidad" 
+          element={
+            <PrivateRoute>
+              <ReportePorEntidad />
             </PrivateRoute>
           } 
         />

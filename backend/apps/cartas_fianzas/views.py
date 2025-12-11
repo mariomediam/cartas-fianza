@@ -1,10 +1,11 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Max, Subquery, OuterRef, F
+from django.db import connection
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from .models import (
@@ -189,6 +190,7 @@ class FinancialEntityViewSet(viewsets.ModelViewSet):
     - PUT /api/financial-entities/{id}/ - Actualizar una entidad financiera
     - PATCH /api/financial-entities/{id}/ - Actualizar parcialmente una entidad financiera
     - DELETE /api/financial-entities/{id}/ - Eliminar una entidad financiera
+    - GET /api/financial-entities/{id}/reporte-cartas/ - Obtener cartas fianza por entidad financiera
     """
     queryset = FinancialEntity.objects.all()
     serializer_class = FinancialEntitySerializer
@@ -206,6 +208,81 @@ class FinancialEntityViewSet(viewsets.ModelViewSet):
     
     # Ordenamiento por defecto
     ordering = ['description']
+    
+    @action(detail=True, methods=['get'], url_path='reporte-cartas')
+    def reporte_cartas(self, request, pk=None):
+        """
+        Obtiene el reporte de cartas fianza para una entidad financiera específica.
+        
+        Utiliza el procedimiento almacenado 'get_warranty_by_financial_entity' que retorna
+        información consolidada de las cartas fianza, considerando si el último
+        estado está activo o no para determinar qué datos mostrar.
+        
+        GET /api/financial-entities/{id}/reporte-cartas/
+        
+        Retorna:
+        - warranty_histories_id: ID del historial de garantía
+        - letter_number: Número de carta (del último o penúltimo según estado)
+        - issue_date: Fecha de emisión
+        - validity_start: Inicio de vigencia
+        - validity_end: Fin de vigencia
+        - amount: Monto
+        - currency_type_id: ID del tipo de moneda
+        - financial_entity_id: ID de la entidad financiera
+        - warranty_id: ID de la garantía
+        - contractor_id: ID del contratista
+        - letter_type_id: ID del tipo de carta
+        - warranty_object_id: ID del objeto de garantía
+        - symbol: Símbolo de la moneda
+        - financial_entities_description: Descripción de la entidad financiera
+        - business_name: Razón social del contratista
+        - ruc: RUC del contratista
+        - letter_types_description: Descripción del tipo de carta
+        - warranty_objects_description: Descripción del objeto de garantía
+        - cui: Código Único de Inversión
+        - warranty_statuses_last_description: Descripción del último estado
+        """
+        financial_entity_id = pk
+        
+        # Verificar que la entidad financiera existe
+        try:
+            financial_entity = FinancialEntity.objects.get(pk=financial_entity_id)
+        except FinancialEntity.DoesNotExist:
+            return Response(
+                {'error': f'Entidad financiera con ID {financial_entity_id} no encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            with connection.cursor() as cursor:
+                # Llamar al procedimiento almacenado
+                cursor.execute("SELECT * FROM get_warranty_by_financial_entity(%s)", [financial_entity_id])
+                
+                # Obtener los nombres de las columnas
+                columns = [col[0] for col in cursor.description]
+                
+                # Convertir los resultados a diccionarios
+                results = []
+                for row in cursor.fetchall():
+                    row_dict = dict(zip(columns, row))
+                    # Convertir Decimal a float para serialización JSON
+                    for key, value in row_dict.items():
+                        if hasattr(value, '__float__'):
+                            row_dict[key] = float(value)
+                    results.append(row_dict)
+                
+            return Response({
+                'financial_entity_id': financial_entity_id,
+                'financial_entity_description': financial_entity.description,
+                'count': len(results),
+                'results': results
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al ejecutar el procedimiento almacenado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ContractorViewSet(viewsets.ModelViewSet):
@@ -370,6 +447,82 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
             'count': queryset.count(),
             'results': serializer.data
         })
+    
+    @action(detail=True, methods=['get'], url_path='reporte-cartas')
+    def reporte_cartas(self, request, pk=None):
+        """
+        Obtiene el reporte de cartas fianza para un objeto de garantía específico.
+        
+        Utiliza el procedimiento almacenado 'get_warranty_report' que retorna
+        información consolidada de las cartas fianza, considerando si el último
+        estado está activo o no para determinar qué datos mostrar.
+        
+        GET /api/warranty-objects/{id}/reporte-cartas/
+        
+        Retorna:
+        - warranty_histories_id: ID del historial de garantía
+        - letter_number: Número de carta (del último o penúltimo según estado)
+        - issue_date: Fecha de emisión
+        - validity_start: Inicio de vigencia
+        - validity_end: Fin de vigencia
+        - amount: Monto
+        - currency_type_id: ID del tipo de moneda
+        - financial_entity_id: ID de la entidad financiera
+        - warranty_id: ID de la garantía
+        - contractor_id: ID del contratista
+        - letter_type_id: ID del tipo de carta
+        - warranty_object_id: ID del objeto de garantía
+        - symbol: Símbolo de la moneda
+        - financial_entities_description: Descripción de la entidad financiera
+        - business_name: Razón social del contratista
+        - ruc: RUC del contratista
+        - letter_types_description: Descripción del tipo de carta
+        - warranty_objects_description: Descripción del objeto de garantía
+        - cui: Código Único de Inversión
+        - warranty_statuses_last_description: Descripción del último estado
+        """
+        warranty_object_id = pk
+        
+        # Verificar que el objeto de garantía existe
+        try:
+            warranty_object = WarrantyObject.objects.get(pk=warranty_object_id)
+        except WarrantyObject.DoesNotExist:
+            return Response(
+                {'error': f'Objeto de garantía con ID {warranty_object_id} no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            with connection.cursor() as cursor:
+                # Llamar al procedimiento almacenado
+                cursor.execute("SELECT * FROM get_warranty_report(%s)", [warranty_object_id])
+                
+                # Obtener los nombres de las columnas
+                columns = [col[0] for col in cursor.description]
+                
+                # Convertir los resultados a diccionarios
+                results = []
+                for row in cursor.fetchall():
+                    row_dict = dict(zip(columns, row))
+                    # Convertir Decimal a float para serialización JSON
+                    for key, value in row_dict.items():
+                        if hasattr(value, '__float__'):
+                            row_dict[key] = float(value)
+                    results.append(row_dict)
+                
+            return Response({
+                'warranty_object_id': warranty_object_id,
+                'warranty_object_description': warranty_object.description,
+                'warranty_object_cui': warranty_object.cui,
+                'count': len(results),
+                'results': results
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al ejecutar el procedimiento almacenado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class WarrantyStatusViewSet(viewsets.ModelViewSet):

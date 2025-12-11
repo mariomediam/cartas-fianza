@@ -86,6 +86,7 @@ const Layout = ({ children }) => {
         { name: 'Cartas Devueltas', path: '/reportes/devueltas' },
         { name: 'Cartas Ejecutadas', path: '/reportes/ejecutadas' },
         { name: 'Cartas por Vencer', path: '/reportes/por-vencer' },
+        { name: 'Por Objeto de Garantía', path: '/reportes/por-objeto' },
         { name: 'Por Entidad Financiera', path: '/reportes/por-entidad' },
         { name: 'Por Contratista', path: '/reportes/por-contratista' },
       ]
