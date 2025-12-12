@@ -89,6 +89,7 @@ const Layout = ({ children }) => {
         { name: 'Por Objeto de Garantía', path: '/reportes/por-objeto' },
         { name: 'Por Entidad Financiera', path: '/reportes/por-entidad' },
         { name: 'Por Contratista', path: '/reportes/por-contratista' },
+        { name: 'Certificación', path: '/reportes/certificacion' },
       ]
     },
     { name: 'Usuarios', path: '/usuarios', icon: '👥' },

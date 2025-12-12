@@ -1468,6 +1468,115 @@ class WarrantyViewSet(viewsets.ModelViewSet):
             },
             'results': results
         })
+    
+    @action(detail=False, methods=['get'], url_path='certificacion')
+    def certificacion(self, request):
+        """
+        Endpoint para obtener la certificación de cartas fianza por objeto de garantía y contratista.
+        
+        GET /api/warranties/certificacion/?warranty_object_id=15&contractor_id=12
+        
+        Utiliza el procedimiento almacenado 'get_warranty_certification' que retorna
+        información consolidada de las cartas fianza, considerando si el último
+        estado está activo o no para determinar qué datos mostrar.
+        
+        Parámetros requeridos:
+        - warranty_object_id: ID del objeto de garantía
+        - contractor_id: ID del contratista
+        
+        Retorna:
+        - warranty_histories_id: ID del historial de garantía
+        - letter_number: Número de carta (del último o penúltimo según estado)
+        - issue_date: Fecha de emisión
+        - validity_start: Inicio de vigencia
+        - validity_end: Fin de vigencia
+        - amount: Monto
+        - currency_type_id: ID del tipo de moneda
+        - financial_entity_id: ID de la entidad financiera
+        - warranty_id: ID de la garantía
+        - contractor_id: ID del contratista
+        - letter_type_id: ID del tipo de carta
+        - warranty_object_id: ID del objeto de garantía
+        - symbol: Símbolo de la moneda
+        - financial_entities_description: Descripción de la entidad financiera
+        - business_name: Razón social del contratista
+        - ruc: RUC del contratista
+        - letter_types_description: Descripción del tipo de carta
+        - warranty_objects_description: Descripción del objeto de garantía
+        - cui: Código Único de Inversión
+        - warranty_statuses_last_description: Descripción del último estado
+        """
+        warranty_object_id = request.query_params.get('warranty_object_id')
+        contractor_id = request.query_params.get('contractor_id')
+        
+        # Validar parámetros requeridos
+        if not warranty_object_id:
+            return Response(
+                {'error': 'El parámetro warranty_object_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not contractor_id:
+            return Response(
+                {'error': 'El parámetro contractor_id es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar que el objeto de garantía existe
+        try:
+            warranty_object = WarrantyObject.objects.get(pk=warranty_object_id)
+        except WarrantyObject.DoesNotExist:
+            return Response(
+                {'error': f'Objeto de garantía con ID {warranty_object_id} no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Verificar que el contratista existe
+        try:
+            contractor = Contractor.objects.get(pk=contractor_id)
+        except Contractor.DoesNotExist:
+            return Response(
+                {'error': f'Contratista con ID {contractor_id} no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            with connection.cursor() as cursor:
+                # Llamar al procedimiento almacenado
+                cursor.execute(
+                    "SELECT * FROM get_warranty_certification(%s, %s)", 
+                    [warranty_object_id, contractor_id]
+                )
+                
+                # Obtener los nombres de las columnas
+                columns = [col[0] for col in cursor.description]
+                
+                # Convertir los resultados a diccionarios
+                results = []
+                for row in cursor.fetchall():
+                    row_dict = dict(zip(columns, row))
+                    # Convertir Decimal a float para serialización JSON
+                    for key, value in row_dict.items():
+                        if hasattr(value, '__float__'):
+                            row_dict[key] = float(value)
+                    results.append(row_dict)
+                
+            return Response({
+                'warranty_object_id': warranty_object_id,
+                'warranty_object_description': warranty_object.description,
+                'warranty_object_cui': warranty_object.cui,
+                'contractor_id': contractor_id,
+                'contractor_business_name': contractor.business_name,
+                'contractor_ruc': contractor.ruc,
+                'count': len(results),
+                'results': results
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al ejecutar el procedimiento almacenado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):

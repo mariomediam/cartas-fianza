@@ -28,6 +28,7 @@ import ReporteEjecutadas from './pages/ReporteEjecutadas';
 import ReportePorObjeto from './pages/ReportePorObjeto';
 import ReportePorEntidad from './pages/ReportePorEntidad';
 import ReportePorContratista from './pages/ReportePorContratista';
+import ReporteCertificacion from './pages/ReporteCertificacion';
 
 function App() {
   return (
@@ -252,6 +253,14 @@ function App() {
           element={
             <PrivateRoute>
               <ReportePorContratista />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/reportes/certificacion" 
+          element={
+            <PrivateRoute>
+              <ReporteCertificacion />
             </PrivateRoute>
           } 
         />
