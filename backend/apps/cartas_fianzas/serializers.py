@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
+from django.contrib.auth.models import User
 from decimal import Decimal
 import os
 from .models import (
@@ -11,7 +12,8 @@ from .models import (
     CurrencyType,
     Warranty,
     WarrantyHistory,
-    WarrantyFile
+    WarrantyFile,
+    UserProfile
 )
 
 
@@ -983,3 +985,194 @@ class WarrantyHistoryVigentesPorFechaSerializer(serializers.ModelSerializer):
             'warranty_object_cui',
         ]
         read_only_fields = fields
+
+
+# ==================== SERIALIZERS DE USUARIO ====================
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer para el perfil de usuario
+    """
+    class Meta:
+        model = UserProfile
+        fields = ['can_manage_users']
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    """
+    Serializer para listar usuarios (sin password)
+    """
+    can_manage_users = serializers.BooleanField(
+        source='profile.can_manage_users',
+        read_only=True
+    )
+    
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'is_active',
+            'date_joined',
+            'last_login',
+            'can_manage_users'
+        ]
+        read_only_fields = fields
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para crear usuarios
+    """
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        min_length=8,
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    can_manage_users = serializers.BooleanField(
+        required=False,
+        default=False
+    )
+    
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'password',
+            'password_confirm',
+            'can_manage_users'
+        ]
+    
+    def validate_username(self, value):
+        """Validar que el username no sea django_admin"""
+        if value.lower() == 'django_admin':
+            raise serializers.ValidationError(
+                'Este nombre de usuario está reservado para el sistema.'
+            )
+        return value
+    
+    def validate(self, data):
+        """Validar que las contraseñas coincidan"""
+        if data.get('password') != data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'Las contraseñas no coinciden.'
+            })
+        return data
+    
+    @transaction.atomic
+    def create(self, validated_data):
+        """Crear usuario con perfil"""
+        can_manage_users = validated_data.pop('can_manage_users', False)
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password')
+        
+        # Crear usuario con is_staff=False y is_superuser=False
+        user = User.objects.create(
+            **validated_data,
+            is_staff=False,
+            is_superuser=False
+        )
+        user.set_password(password)
+        user.save()
+        
+        # Crear o actualizar perfil
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        profile.can_manage_users = can_manage_users
+        profile.save()
+        
+        return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para actualizar usuarios (sin password obligatorio)
+    """
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        min_length=8,
+        allow_blank=True,
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        style={'input_type': 'password'}
+    )
+    can_manage_users = serializers.BooleanField(
+        required=False
+    )
+    
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'password',
+            'password_confirm',
+            'is_active',
+            'can_manage_users'
+        ]
+    
+    def validate_username(self, value):
+        """Validar que el username no sea django_admin"""
+        if value.lower() == 'django_admin':
+            raise serializers.ValidationError(
+                'Este nombre de usuario está reservado para el sistema.'
+            )
+        return value
+    
+    def validate(self, data):
+        """Validar que las contraseñas coincidan si se proporcionan"""
+        password = data.get('password', '')
+        password_confirm = data.get('password_confirm', '')
+        
+        if password or password_confirm:
+            if password != password_confirm:
+                raise serializers.ValidationError({
+                    'password_confirm': 'Las contraseñas no coinciden.'
+                })
+        return data
+    
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        """Actualizar usuario y perfil"""
+        can_manage_users = validated_data.pop('can_manage_users', None)
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password', None)
+        
+        # Actualizar campos del usuario
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Actualizar password si se proporciona
+        if password:
+            instance.set_password(password)
+        
+        # Asegurar que is_staff e is_superuser sean False
+        instance.is_staff = False
+        instance.is_superuser = False
+        instance.save()
+        
+        # Actualizar perfil si se proporciona can_manage_users
+        if can_manage_users is not None:
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            profile.can_manage_users = can_manage_users
+            profile.save()
+        
+        return instance

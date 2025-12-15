@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
+from .models import UserProfile
 
 
 class LoginView(APIView):
@@ -13,7 +14,7 @@ class LoginView(APIView):
     POST /api/auth/login/
     Body: {"username": "usuario", "password": "contraseña"}
     
-    Retorna: {"token": "abc123...", "user_id": 1, "username": "usuario"}
+    Retorna: {"token": "abc123...", "user_id": 1, "username": "usuario", "can_manage_users": true/false}
     """
     permission_classes = [AllowAny]
     
@@ -33,6 +34,9 @@ class LoginView(APIView):
             # Obtener o crear el token del usuario
             token, created = Token.objects.get_or_create(user=user)
             
+            # Obtener o crear perfil del usuario
+            profile, profile_created = UserProfile.objects.get_or_create(user=user)
+            
             return Response({
                 'token': token.key,
                 'user_id': user.id,
@@ -40,6 +44,7 @@ class LoginView(APIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'can_manage_users': profile.can_manage_users,
             }, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -87,6 +92,10 @@ class UserInfoView(APIView):
     
     def get(self, request):
         user = request.user
+        
+        # Obtener o crear perfil del usuario
+        profile, profile_created = UserProfile.objects.get_or_create(user=user)
+        
         return Response({
             'user_id': user.id,
             'username': user.username,
@@ -95,5 +104,6 @@ class UserInfoView(APIView):
             'last_name': user.last_name,
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
+            'can_manage_users': profile.can_manage_users,
         }, status=status.HTTP_200_OK)
 

@@ -22,6 +22,7 @@ const useAuthStore = create(
             email: data.email,
             first_name: data.first_name,
             last_name: data.last_name,
+            can_manage_users: data.can_manage_users || false,
           };
 
           set({

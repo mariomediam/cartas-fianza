@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import FileXIcon from '../components/icons/FileXIcon';
 import ClockIcon from '../components/icons/ClockIcon';
 import FileCheckIcon from '../components/icons/FileCheckIcon';
+import ViewWarrantyModal from '../components/ViewWarrantyModal';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -15,6 +16,10 @@ const Dashboard = () => {
   const [vencidasList, setVencidasList] = useState([]);
   const [porVencerList, setPorVencerList] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Estados para el modal de ver carta
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedWarrantyHistoryId, setSelectedWarrantyHistoryId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -59,6 +64,23 @@ const Dashboard = () => {
     ...vencidasList.map(w => ({ ...w, tipo: 'vencida' })),
     ...porVencerList.map(w => ({ ...w, tipo: 'por-vencer' }))
   ].sort((a, b) => new Date(a.validity_end) - new Date(b.validity_end));
+
+  // Abrir modal para ver detalle de carta
+  const handleViewWarranty = (warrantyHistoryId) => {
+    setSelectedWarrantyHistoryId(warrantyHistoryId);
+    setIsModalOpen(true);
+  };
+
+  // Cerrar modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedWarrantyHistoryId(null);
+  };
+
+  // Callback cuando se elimina una carta desde el modal
+  const handleWarrantyDeleted = () => {
+    fetchData(); // Refrescar datos
+  };
 
   return (
     <Layout>
@@ -203,6 +225,9 @@ const Dashboard = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Estado
                       </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -237,6 +262,19 @@ const Dashboard = () => {
                             </span>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleViewWarranty(warranty.max_warranty_history)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                            title="Ver detalle"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Ver
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -246,6 +284,14 @@ const Dashboard = () => {
           </div>
         </>
       )}
+      
+      {/* Modal para ver detalle de carta */}
+      <ViewWarrantyModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        warrantyHistoryId={selectedWarrantyHistoryId}
+        onDeleted={handleWarrantyDeleted}
+      />
     </Layout>
   );
 };

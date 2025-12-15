@@ -1,11 +1,12 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Max, Subquery, OuterRef, F
 from django.db import connection
+from django.contrib.auth.models import User
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from .models import (
@@ -17,7 +18,8 @@ from .models import (
     CurrencyType,
     Warranty,
     WarrantyHistory,
-    WarrantyFile
+    WarrantyFile,
+    UserProfile
 )
 from .serializers import (
     LetterTypeSerializer, 
@@ -29,7 +31,10 @@ from .serializers import (
     WarrantySerializer,
     WarrantyObjectSearchSerializer,
     WarrantyHistoryDetailSerializer,
-    WarrantyHistoryVigentesPorFechaSerializer
+    WarrantyHistoryVigentesPorFechaSerializer,
+    UserListSerializer,
+    UserCreateSerializer,
+    UserUpdateSerializer
 )
 
 
@@ -3344,3 +3349,189 @@ class WarrantyHistoryViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': f'Error al modificar la ejecución: {str(e)}'},
                 status=400
             )
+
+
+# ==================== PERMISOS PERSONALIZADOS ====================
+
+class CanManageUsers(BasePermission):
+    """
+    Permiso para verificar si el usuario puede administrar usuarios.
+    Solo usuarios con can_manage_users=True en su perfil pueden acceder.
+    """
+    message = 'No tienes permisos para administrar usuarios.'
+    
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        
+        # Verificar si el usuario tiene perfil y puede administrar usuarios
+        try:
+            return request.user.profile.can_manage_users
+        except UserProfile.DoesNotExist:
+            return False
+
+
+# ==================== VIEWSET DE USUARIOS ====================
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para administración de usuarios.
+    
+    Excluye al usuario 'django_admin' de todas las operaciones.
+    Solo usuarios con can_manage_users=True pueden acceder.
+    
+    Endpoints:
+    - GET /api/users/ - Listar usuarios
+    - POST /api/users/ - Crear usuario
+    - GET /api/users/{id}/ - Obtener usuario
+    - PUT /api/users/{id}/ - Actualizar usuario
+    - PATCH /api/users/{id}/ - Actualizar parcialmente usuario
+    - DELETE /api/users/{id}/ - Eliminar usuario
+    """
+    permission_classes = [IsAuthenticated, CanManageUsers]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering_fields = ['username', 'email', 'first_name', 'last_name', 'date_joined']
+    ordering = ['username']
+    
+    # Usuario protegido que nunca debe ser listado/modificado/eliminado
+    PROTECTED_USERNAME = 'django_admin'
+    
+    def get_queryset(self):
+        """
+        Excluir al usuario django_admin de todas las consultas
+        """
+        return User.objects.exclude(
+            username=self.PROTECTED_USERNAME
+        ).select_related('profile')
+    
+    def get_serializer_class(self):
+        """
+        Retornar el serializer adecuado según la acción
+        """
+        if self.action == 'create':
+            return UserCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return UserUpdateSerializer
+        return UserListSerializer
+    
+    def get_object(self):
+        """
+        Obtener objeto asegurando que no sea django_admin
+        """
+        obj = super().get_object()
+        if obj.username == self.PROTECTED_USERNAME:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Usuario no encontrado.')
+        return obj
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Crear nuevo usuario
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Retornar datos del usuario creado
+        response_serializer = UserListSerializer(user)
+        return Response(
+            {
+                'message': 'Usuario creado correctamente',
+                'data': response_serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Actualizar usuario
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Retornar datos del usuario actualizado
+        response_serializer = UserListSerializer(user)
+        return Response({
+            'message': 'Usuario actualizado correctamente',
+            'data': response_serializer.data
+        })
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Eliminar usuario (no permite eliminar al usuario actual ni usuarios con datos registrados)
+        """
+        instance = self.get_object()
+        
+        # No permitir que un usuario se elimine a sí mismo
+        if instance.id == request.user.id:
+            return Response(
+                {'error': 'No puedes eliminar tu propio usuario.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar si el usuario tiene información registrada en el sistema
+        related_records = []
+        
+        # Verificar relaciones con cada modelo
+        models_to_check = [
+            ('Objetos de Garantía', WarrantyObject, ['created_by', 'updated_by']),
+            ('Tipos de Carta', LetterType, ['created_by', 'updated_by']),
+            ('Entidades Financieras', FinancialEntity, ['created_by', 'updated_by']),
+            ('Contratistas', Contractor, ['created_by', 'updated_by']),
+            ('Estados de Garantía', WarrantyStatus, ['created_by', 'updated_by']),
+            ('Tipos de Moneda', CurrencyType, ['created_by', 'updated_by']),
+            ('Garantías', Warranty, ['created_by', 'updated_by']),
+            ('Historiales de Garantía', WarrantyHistory, ['created_by', 'updated_by']),
+            ('Archivos de Garantía', WarrantyFile, ['created_by', 'updated_by']),
+        ]
+        
+        for model_name, model_class, fields in models_to_check:
+            for field in fields:
+                count = model_class.objects.filter(**{field: instance}).count()
+                if count > 0:
+                    related_records.append(f'{model_name} ({field.replace("_", " ")}): {count}')
+        
+        if related_records:
+            return Response(
+                {
+                    'error': 'No se puede eliminar el usuario porque tiene información registrada en el sistema.',
+                    'details': related_records
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        username = instance.username
+        instance.delete()
+        
+        return Response(
+            {'message': f'Usuario {username} eliminado correctamente'},
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=False, methods=['get'], url_path='me')
+    def current_user(self, request):
+        """
+        Obtener información del usuario actual con permisos
+        
+        GET /api/users/me/
+        """
+        user = request.user
+        
+        # Obtener o crear perfil
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_active': user.is_active,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login,
+            'can_manage_users': profile.can_manage_users
+        })

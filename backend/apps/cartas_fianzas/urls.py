@@ -8,7 +8,8 @@ from .views import (
     WarrantyStatusViewSet,
     CurrencyTypeViewSet,
     WarrantyViewSet,
-    WarrantyHistoryViewSet
+    WarrantyHistoryViewSet,
+    UserViewSet
 )
 from .auth_views import LoginView, LogoutView, UserInfoView
 
@@ -24,6 +25,7 @@ router.register(r'warranty-statuses', WarrantyStatusViewSet, basename='warranty-
 router.register(r'currency-types', CurrencyTypeViewSet, basename='currency-type')
 router.register(r'warranties', WarrantyViewSet, basename='warranty')
 router.register(r'warranty-histories', WarrantyHistoryViewSet, basename='warranty-history')
+router.register(r'users', UserViewSet, basename='user')
 
 # URLs de la app
 urlpatterns = [

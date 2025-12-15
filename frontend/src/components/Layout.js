@@ -57,43 +57,53 @@ const Layout = ({ children }) => {
     return location.pathname === path;
   };
 
-  const menuItems = [
-    { name: 'Inicio', path: '/dashboard', icon: '🏠' },
-    { 
-      name: 'Catálogos', 
-      path: '#',
-      icon: '📚',
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Objetos de Garantía', path: '/catalogos/objetos-garantia' },
-        { name: 'Tipos de Carta', path: '/catalogos/tipos-carta' },
-        { name: 'Entidades Financieras', path: '/catalogos/entidades-financieras' },
-        { name: 'Contratistas', path: '/catalogos/contratistas' },
-        // { name: 'Estados de Garantía', path: '/catalogos/estados-garantia' },
-        { name: 'Tipos de Moneda', path: '/catalogos/tipos-moneda' },
-      ]
-    },
-    { name: 'Cartas fianza', path: '/cartas-fianza', icon: '📋' },
-    { 
-      name: 'Reportes', 
-      path: '#',
-      icon: '📊',
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Reporte General', path: '/reportes/general' },
-        { name: 'Cartas Vencidas', path: '/reportes/vencidas' },
-        { name: 'Cartas Vigentes', path: '/reportes/vigentes' },
-        { name: 'Cartas Devueltas', path: '/reportes/devueltas' },
-        { name: 'Cartas Ejecutadas', path: '/reportes/ejecutadas' },
-        { name: 'Cartas por Vencer', path: '/reportes/por-vencer' },
-        { name: 'Por Objeto de Garantía', path: '/reportes/por-objeto' },
-        { name: 'Por Entidad Financiera', path: '/reportes/por-entidad' },
-        { name: 'Por Contratista', path: '/reportes/por-contratista' },
-        { name: 'Certificación', path: '/reportes/certificacion' },
-      ]
-    },
-    { name: 'Usuarios', path: '/usuarios', icon: '👥' },
-  ];
+  // Construir menú dinámicamente según permisos
+  const getMenuItems = () => {
+    const items = [
+      { name: 'Inicio', path: '/dashboard', icon: '🏠' },
+      { 
+        name: 'Catálogos', 
+        path: '#',
+        icon: '📚',
+        hasSubmenu: true,
+        submenu: [
+          { name: 'Objetos de Garantía', path: '/catalogos/objetos-garantia' },
+          { name: 'Tipos de Carta', path: '/catalogos/tipos-carta' },
+          { name: 'Entidades Financieras', path: '/catalogos/entidades-financieras' },
+          { name: 'Contratistas', path: '/catalogos/contratistas' },
+          { name: 'Tipos de Moneda', path: '/catalogos/tipos-moneda' },
+        ]
+      },
+      { name: 'Cartas fianza', path: '/cartas-fianza', icon: '📋' },
+      { 
+        name: 'Reportes', 
+        path: '#',
+        icon: '📊',
+        hasSubmenu: true,
+        submenu: [
+          { name: 'Reporte General', path: '/reportes/general' },
+          { name: 'Cartas Vencidas', path: '/reportes/vencidas' },
+          { name: 'Cartas Vigentes', path: '/reportes/vigentes' },
+          { name: 'Cartas Devueltas', path: '/reportes/devueltas' },
+          { name: 'Cartas Ejecutadas', path: '/reportes/ejecutadas' },
+          { name: 'Cartas por Vencer', path: '/reportes/por-vencer' },
+          { name: 'Por Objeto de Garantía', path: '/reportes/por-objeto' },
+          { name: 'Por Entidad Financiera', path: '/reportes/por-entidad' },
+          { name: 'Por Contratista', path: '/reportes/por-contratista' },
+          { name: 'Certificación', path: '/reportes/certificacion' },
+        ]
+      },
+    ];
+    
+    // Solo mostrar el menú de Usuarios si el usuario tiene permiso
+    if (user?.can_manage_users) {
+      items.push({ name: 'Usuarios', path: '/usuarios', icon: '👥' });
+    }
+    
+    return items;
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
