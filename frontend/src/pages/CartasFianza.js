@@ -62,6 +62,7 @@ const CartasFianza = () => {
   const filterOptions = [
     { value: "letter_number", label: "Número de carta" },
     { value: "description", label: "Objeto de garantía" },
+    { value: "cui", label: "CUI" },
     { value: "contractor_ruc", label: "Contratista (RUC)" },
     { value: "contractor_name", label: "Contratista (Nombre)" },
   ];

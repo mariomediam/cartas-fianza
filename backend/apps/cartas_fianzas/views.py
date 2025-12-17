@@ -434,14 +434,15 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
         
         Parámetros:
         - filter_type: Tipo de filtro a aplicar
-          * 'letter_number': Buscar por número de carta
+          * 'cui': Buscar por CUI del objeto de garantía
           * 'description': Buscar por descripción del objeto de garantía
+          * 'letter_number': Buscar por número de carta
           * 'contractor_ruc': Buscar por RUC del contratista
           * 'contractor_name': Buscar por nombre del contratista
         - filter_value: Valor a buscar (se usa búsqueda con LIKE/ICONTAINS)
         
         Ejemplo:
-        GET /api/warranty-objects/buscar/?filter_type=letter_number&filter_value=002-00
+        GET /api/warranty-objects/buscar/?filter_type=cui&filter_value=123456
         
         Retorna una lista de objetos de garantía que cumplen con el filtro
         con toda la información anidada de garantías e historiales
@@ -482,7 +483,19 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
         )
         
         # Aplicar filtro según el tipo
-        if filter_type == 'letter_number':
+        if filter_type == 'cui':
+            # Buscar por CUI del objeto de garantía
+            queryset = queryset.filter(
+                cui__icontains=filter_value
+            ).distinct()
+            
+        elif filter_type == 'description':
+            # Buscar por descripción del objeto de garantía
+            queryset = queryset.filter(
+                description__icontains=filter_value
+            ).distinct()
+            
+        elif filter_type == 'letter_number':
             # Buscar por número de carta
             # SQL: SELECT DISTINCT warranty_objects.id FROM warranty_objects
             #      INNER JOIN warranties ON warranty_objects.id = warranties.warranty_object_id
@@ -492,7 +505,7 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
                 warranties__history__letter_number__icontains=filter_value
             ).distinct()
             
-        elif filter_type == 'description':
+        elif filter_type == 'contractor_ruc':
             # Buscar por descripción del objeto de garantía
             queryset = queryset.filter(
                 description__icontains=filter_value
@@ -520,7 +533,7 @@ class WarrantyObjectViewSet(viewsets.ModelViewSet):
             
         else:
             return Response({
-                'error': 'Tipo de filtro no válido. Valores permitidos: letter_number, description, contractor_ruc, contractor_name'
+                'error': 'Tipo de filtro no válido. Valores permitidos: cui, description, letter_number, contractor_ruc, contractor_name'
             }, status=400)
         
         # Usar el serializer especial para búsqueda con información anidada
