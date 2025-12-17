@@ -228,19 +228,40 @@ const ReporteVencidas = () => {
             background: #fff;
             padding: 15px;
           }
-          .header {
-            text-align: center;
+          .header-container {
+            display: flex;
+            align-items: flex-start;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 2px solid #2c3e50;
           }
-          .header h1 {
+          .logo-section {
+            flex-shrink: 0;
+            margin-right: 20px;
+          }
+          .logo-section img {
+            width: 50px;
+            height: auto;
+          }
+          .logo-section .institution-name {
+            font-size: 9px;
+            color: #2c3e50;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 5px;
+          }
+          .header-title {
+            flex: 1;
+            text-align: center;
+            padding-top: 10px;
+          }
+          .header-title h1 {
             font-size: 18px;
             color: #2c3e50;
             margin-bottom: 5px;
             font-weight: 700;
           }
-          .header p {
+          .header-title p {
             font-size: 11px;
             color: #5d6d7e;
           }
@@ -292,8 +313,22 @@ const ReporteVencidas = () => {
             font-weight: 600;
             color: #27ae60;
           }
+          .signature-section {
+            margin-top: 120px;
+            text-align: center;
+          }
+          .signature-line {
+            width: 250px;
+            border-top: 1px solid #2c3e50;
+            margin: 0 auto 10px auto;
+          }
+          .signature-text {
+            font-size: 11px;
+            color: #2c3e50;
+            font-weight: 600;
+          }
           .footer {
-            margin-top: 20px;
+            margin-top: 30px;
             padding-top: 10px;
             border-top: 1px solid #e9ecef;
             font-size: 9px;
@@ -311,9 +346,15 @@ const ReporteVencidas = () => {
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>📋 REPORTE DE CARTAS FIANZA VENCIDAS</h1>
-          <p>Universidad Nacional de Frontera - Sistema de Gestión de Cartas Fianza</p>
+        <div class="header-container">
+          <div class="logo-section">
+            <img src="${window.location.origin}/images/logo-unf.png" alt="Logo UNF" onerror="this.style.display='none'"/>
+            
+          </div>
+          <div class="header-title">
+            <h1>REPORTE DE CARTAS FIANZA VENCIDAS</h1>
+            <p>Universidad Nacional de Frontera - Sistema de Gestión de Cartas Fianza</p>
+          </div>
         </div>
         
         <div class="filters-info">
@@ -355,6 +396,11 @@ const ReporteVencidas = () => {
             `).join('')}
           </tbody>
         </table>
+        
+        <div class="signature-section">
+          <div class="signature-line"></div>
+          <div class="signature-text">Firma del Responsable</div>
+        </div>
         
         <div class="footer">
           <span>Generado el: ${new Date().toLocaleString('es-PE')}</span>

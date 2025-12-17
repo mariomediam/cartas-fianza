@@ -304,6 +304,36 @@ const ReporteVigentes = () => {
             background: #dcfce7 !important;
             font-weight: 600;
           }
+          .totals-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+          }
+          .totals-title {
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 10px;
+            font-size: 11px;
+          }
+          .totals-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: flex-end;
+          }
+          .total-item {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #16a34a;
+          }
+          .total-amount {
+            font-size: 14px;
+            font-weight: 700;
+            color: #16a34a;
+          }
           @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
@@ -355,6 +385,19 @@ const ReporteVigentes = () => {
           </tbody>
         </table>
         
+        ${Object.keys(totalsByCurrency).length > 0 ? `
+        <div class="totals-section">
+          <div class="totals-title">TOTAL:</div>
+          <div class="totals-grid">
+            ${Object.entries(totalsByCurrency).map(([currency, total]) => `
+              <div class="total-item">
+                <span class="total-amount">${currency} ${total.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
         <div class="footer">
           <span>Generado el: ${new Date().toLocaleString('es-PE')}</span>
           <span>Sistema de Gestión de Cartas Fianza - UNF</span>
@@ -378,6 +421,28 @@ const ReporteVigentes = () => {
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
   };
+
+  // Calcular totales por moneda
+  const calculateTotalsByCurrency = () => {
+    if (!results || !results.results || results.results.length === 0) {
+      return {};
+    }
+
+    const totals = {};
+    results.results.forEach((item) => {
+      const currency = item.currency_type_symbol || 'S/.';
+      const amount = parseFloat(item.amount || 0);
+      
+      if (!totals[currency]) {
+        totals[currency] = 0;
+      }
+      totals[currency] += amount;
+    });
+
+    return totals;
+  };
+
+  const totalsByCurrency = calculateTotalsByCurrency();
 
   // Estilos para react-select
   const selectStyles = {
@@ -794,6 +859,33 @@ const ReporteVigentes = () => {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Totales por moneda */}
+                {Object.keys(totalsByCurrency).length > 0 && (
+                  <div className="px-6 py-4 bg-green-50 border-t border-green-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+                      <span className="text-sm font-semibold text-gray-700">
+                        Totales por moneda:
+                      </span>
+                      <div className="flex flex-wrap gap-4">
+                        {Object.entries(totalsByCurrency).map(([currency, total]) => (
+                          <div
+                            key={currency}
+                            className="bg-white px-4 py-2 rounded-lg border border-green-300 shadow-sm"
+                          >
+                            <span className="text-lg font-bold text-green-600">
+                              {currency}{' '}
+                              {total.toLocaleString('es-PE', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
