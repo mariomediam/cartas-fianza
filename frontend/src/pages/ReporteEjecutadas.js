@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { toast } from 'sonner';
-import AsyncSelect from 'react-select/async';
-import api from '../services/api';
-import Layout from '../components/Layout';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
+import AsyncSelect from "react-select/async";
+import api from "../services/api";
+import Layout from "../components/Layout";
 
 const ReporteEjecutadas = () => {
   // Estados para catálogos
@@ -16,10 +16,10 @@ const ReporteEjecutadas = () => {
 
   // Estados para filtros
   const [filters, setFilters] = useState({
-    fecha_desde: firstDayOfMonth.toISOString().split('T')[0],
-    fecha_hasta: today.toISOString().split('T')[0],
-    letter_type_id: '',
-    financial_entity_id: '',
+    fecha_desde: firstDayOfMonth.toISOString().split("T")[0],
+    fecha_hasta: today.toISOString().split("T")[0],
+    letter_type_id: "",
+    financial_entity_id: "",
     contractor: null,
     warranty_object: null,
   });
@@ -44,15 +44,17 @@ const ReporteEjecutadas = () => {
     setLoadingCatalogs(true);
     try {
       const [letterTypesRes, financialEntitiesRes] = await Promise.all([
-        api.get('/letter-types/?page_size=1000'),
-        api.get('/financial-entities/?page_size=1000'),
+        api.get("/letter-types/?page_size=1000"),
+        api.get("/financial-entities/?page_size=1000"),
       ]);
 
       setLetterTypes(letterTypesRes.data.results || letterTypesRes.data || []);
-      setFinancialEntities(financialEntitiesRes.data.results || financialEntitiesRes.data || []);
+      setFinancialEntities(
+        financialEntitiesRes.data.results || financialEntitiesRes.data || []
+      );
     } catch (error) {
-      console.error('Error al cargar catálogos:', error);
-      toast.error('Error al cargar los catálogos');
+      console.error("Error al cargar catálogos:", error);
+      toast.error("Error al cargar los catálogos");
     } finally {
       setLoadingCatalogs(false);
     }
@@ -65,7 +67,7 @@ const ReporteEjecutadas = () => {
     }
 
     try {
-      const response = await api.get('/contractors/', {
+      const response = await api.get("/contractors/", {
         params: {
           search: inputValue.trim(),
           page_size: 20,
@@ -79,7 +81,7 @@ const ReporteEjecutadas = () => {
         data: contractor,
       }));
     } catch (error) {
-      console.error('Error al buscar contratistas:', error);
+      console.error("Error al buscar contratistas:", error);
       return [];
     }
   };
@@ -105,7 +107,7 @@ const ReporteEjecutadas = () => {
     }
 
     try {
-      const response = await api.get('/warranty-objects/', {
+      const response = await api.get("/warranty-objects/", {
         params: {
           search: inputValue.trim(),
           page_size: 20,
@@ -119,7 +121,7 @@ const ReporteEjecutadas = () => {
         data: wo,
       }));
     } catch (error) {
-      console.error('Error al buscar objetos de garantía:', error);
+      console.error("Error al buscar objetos de garantía:", error);
       return [];
     }
   };
@@ -149,17 +151,17 @@ const ReporteEjecutadas = () => {
     if (e) e.preventDefault();
 
     if (!filters.fecha_desde) {
-      toast.error('La fecha desde es obligatoria');
+      toast.error("La fecha desde es obligatoria");
       return;
     }
 
     if (!filters.fecha_hasta) {
-      toast.error('La fecha hasta es obligatoria');
+      toast.error("La fecha hasta es obligatoria");
       return;
     }
 
     if (filters.fecha_desde > filters.fecha_hasta) {
-      toast.error('La fecha desde no puede ser mayor que la fecha hasta');
+      toast.error("La fecha desde no puede ser mayor que la fecha hasta");
       return;
     }
 
@@ -183,17 +185,25 @@ const ReporteEjecutadas = () => {
         params.warranty_object_id = filters.warranty_object.value;
       }
 
-      const response = await api.get('/warranties/ejecutadas-por-periodo/', { params });
+      const response = await api.get("/warranties/ejecutadas-por-periodo/", {
+        params,
+      });
       setResults(response.data);
 
       if (response.data.count === 0) {
-        toast.info('No se encontraron cartas ejecutadas en el período seleccionado');
+        toast.info(
+          "No se encontraron cartas ejecutadas en el período seleccionado"
+        );
       } else {
-        toast.success(`Se encontraron ${response.data.count} carta(s) ejecutada(s)`);
+        toast.success(
+          `Se encontraron ${response.data.count} carta(s) ejecutada(s)`
+        );
       }
     } catch (error) {
-      console.error('Error al buscar:', error);
-      toast.error(error.response?.data?.error || 'Error al realizar la búsqueda');
+      console.error("Error al buscar:", error);
+      toast.error(
+        error.response?.data?.error || "Error al realizar la búsqueda"
+      );
     } finally {
       setLoading(false);
     }
@@ -203,12 +213,12 @@ const ReporteEjecutadas = () => {
   const handleClearFilters = () => {
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+
     setFilters({
-      fecha_desde: firstDayOfMonth.toISOString().split('T')[0],
-      fecha_hasta: today.toISOString().split('T')[0],
-      letter_type_id: '',
-      financial_entity_id: '',
+      fecha_desde: firstDayOfMonth.toISOString().split("T")[0],
+      fecha_hasta: today.toISOString().split("T")[0],
+      letter_type_id: "",
+      financial_entity_id: "",
       contractor: null,
       warranty_object: null,
     });
@@ -218,12 +228,12 @@ const ReporteEjecutadas = () => {
   // Manejar impresión
   const handlePrint = () => {
     if (!results || results.count === 0) {
-      toast.warning('No hay datos para imprimir');
+      toast.warning("No hay datos para imprimir");
       return;
     }
 
     // Crear contenido de impresión
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -247,19 +257,33 @@ const ReporteEjecutadas = () => {
             background: #fff;
             padding: 15px;
           }
-          .header {
-            text-align: center;
+          .header-container {
+            display: flex;
+            align-items: flex-start;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #dc2626;
+            border-bottom: 2px solid #16a34a;
           }
-          .header h1 {
+          .logo-section {
+            flex-shrink: 0;
+            margin-right: 20px;
+          }
+          .logo-section img {
+            width: 50px;
+            height: auto;
+          }
+          .header-title {
+            flex: 1;
+            text-align: center;
+            padding-top: 10px;
+          }
+          .header-title h1 {
             font-size: 18px;
-            color: #dc2626;
+            color: #16a34a;
             margin-bottom: 5px;
             font-weight: 700;
           }
-          .header p {
+          .header-title p {
             font-size: 11px;
             color: #5d6d7e;
           }
@@ -324,24 +348,78 @@ const ReporteEjecutadas = () => {
             background: #fee2e2 !important;
             font-weight: 600;
           }
+          .signature-section {
+            margin-top: 120px;
+            text-align: center;
+          }
+          .signature-line {
+            width: 250px;
+            border-top: 1px solid #16a34a;
+            margin: 0 auto 10px auto;
+          }
+          .signature-text {
+            font-size: 11px;
+            color: #16a34a;
+            font-weight: 600;
+          }
           @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>⚠️ REPORTE DE CARTAS FIANZA EJECUTADAS</h1>
-          <p>Universidad Nacional de Frontera - Sistema de Gestión de Cartas Fianza</p>
-        </div>
+
+      <div class="header-container">
+          <div class="logo-section">
+            <img src="${
+              window.location.origin
+            }/images/logo-unf.png" alt="Logo UNF" onerror="this.style.display='none'"/>
+          </div>
+          <div class="header-title">
+            <h1>⚠️ REPORTE DE CARTAS FIANZA EJECUTADAS</h1>
+            <p>Universidad Nacional de Frontera - Sistema de Gestión de Cartas Fianza</p>
+          </div>
+       </div>
+
         
         <div class="filters-info">
-          <strong>Período:</strong> ${formatDate(filters.fecha_desde)} al ${formatDate(filters.fecha_hasta)} &nbsp;&nbsp;|&nbsp;&nbsp;
+          <strong>Período:</strong> ${formatDate(
+            filters.fecha_desde
+          )} al ${formatDate(filters.fecha_hasta)} &nbsp;&nbsp;|&nbsp;&nbsp;
           <strong>Total de registros:</strong> ${results.count}
-          ${filters.letter_type_id ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Tipo de Carta:</strong> ${letterTypes.find(l => l.id === parseInt(filters.letter_type_id))?.description || '-'}` : ''}
-          ${filters.financial_entity_id ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Entidad Financiera:</strong> ${financialEntities.find(f => f.id === parseInt(filters.financial_entity_id))?.description || '-'}` : ''}
-          ${filters.contractor ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Contratista:</strong> ${filters.contractor.data?.business_name || '-'}` : ''}
-          ${filters.warranty_object ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Objeto de Garantía:</strong> ${filters.warranty_object.data?.description?.substring(0, 50) || '-'}...` : ''}
+          ${
+            filters.letter_type_id
+              ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Tipo de Carta:</strong> ${
+                  letterTypes.find(
+                    (l) => l.id === parseInt(filters.letter_type_id)
+                  )?.description || "-"
+                }`
+              : ""
+          }
+          ${
+            filters.financial_entity_id
+              ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Entidad Financiera:</strong> ${
+                  financialEntities.find(
+                    (f) => f.id === parseInt(filters.financial_entity_id)
+                  )?.description || "-"
+                }`
+              : ""
+          }
+          ${
+            filters.contractor
+              ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Contratista:</strong> ${
+                  filters.contractor.data?.business_name || "-"
+                }`
+              : ""
+          }
+          ${
+            filters.warranty_object
+              ? ` &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Objeto de Garantía:</strong> ${
+                  filters.warranty_object.data?.description?.substring(0, 50) ||
+                  "-"
+                }...`
+              : ""
+          }
         </div>
         
         <table>
@@ -359,24 +437,51 @@ const ReporteEjecutadas = () => {
             </tr>
           </thead>
           <tbody>
-            ${results.results.map((item, index) => `
+            ${results.results
+              .map(
+                (item, index) => `
               <tr>
                 <td class="text-center">${index + 1}</td>
-                <td>${item.letter_number_orig || '-'}</td>
-                <td>${item.letter_type_description || '-'}</td>
-                <td class="text-center">${formatDate(item.issue_date) || '-'}</td>
-                <td class="text-center">${formatDate(item.validity_start_orig) || '-'} - ${formatDate(item.validity_end_orig) || '-'}</td>
-                <td>${item.financial_entity_description_orig || '-'}</td>
-                <td>${item.contractor_ruc || '-'} - ${item.contractor_business_name || '-'}</td>
-                <td>${(item.warranty_object_description || '-').substring(0, 60)}${(item.warranty_object_description || '').length > 60 ? '...' : ''}</td>
-                <td class="text-right amount">${item.symbol_orig || 'S/.'} ${parseFloat(item.amount_orig || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>${item.letter_number_orig || "-"}</td>
+                <td>${item.letter_type_description || "-"}</td>
+                <td class="text-center">${
+                  formatDate(item.issue_date) || "-"
+                }</td>
+                <td class="text-center">${
+                  formatDate(item.validity_start_orig) || "-"
+                } - ${formatDate(item.validity_end_orig) || "-"}</td>
+                <td>${item.financial_entity_description_orig || "-"}</td>
+                <td>${item.contractor_ruc || "-"} - ${
+                  item.contractor_business_name || "-"
+                }</td>
+                <td>${(item.warranty_object_description || "-").substring(
+                  0,
+                  60
+                )}${
+                  (item.warranty_object_description || "").length > 60
+                    ? "..."
+                    : ""
+                }</td>
+                <td class="text-right amount">${
+                  item.symbol_orig || "S/."
+                } ${parseFloat(item.amount_orig || 0).toLocaleString("es-PE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
+
+         <div class="signature-section">
+          <div class="signature-line"></div>
+          <div class="signature-text">Firma del Responsable</div>
+        </div>
         
         <div class="footer">
-          <span>Generado el: ${new Date().toLocaleString('es-PE')}</span>
+          <span>Generado el: ${new Date().toLocaleString("es-PE")}</span>
           <span>Sistema de Gestión de Cartas Fianza - UNF</span>
         </div>
       </body>
@@ -394,8 +499,8 @@ const ReporteEjecutadas = () => {
 
   // Formatear fecha para mostrar
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    const [year, month, day] = dateStr.split('-');
+    if (!dateStr) return "-";
+    const [year, month, day] = dateStr.split("-");
     return `${day}/${month}/${year}`;
   };
 
@@ -403,10 +508,10 @@ const ReporteEjecutadas = () => {
   const selectStyles = {
     control: (base) => ({
       ...base,
-      padding: '2px',
-      borderColor: '#d1d5db',
-      '&:hover': {
-        borderColor: '#d1d5db',
+      padding: "2px",
+      borderColor: "#d1d5db",
+      "&:hover": {
+        borderColor: "#d1d5db",
       },
     }),
   };
@@ -550,10 +655,10 @@ const ReporteEjecutadas = () => {
                   placeholder="Buscar por RUC o nombre..."
                   noOptionsMessage={({ inputValue }) =>
                     !inputValue || inputValue.length < 2
-                      ? 'Ingrese al menos 2 caracteres para buscar'
-                      : 'No se encontraron contratistas'
+                      ? "Ingrese al menos 2 caracteres para buscar"
+                      : "No se encontraron contratistas"
                   }
-                  loadingMessage={() => 'Buscando...'}
+                  loadingMessage={() => "Buscando..."}
                   styles={selectStyles}
                 />
               </div>
@@ -570,15 +675,18 @@ const ReporteEjecutadas = () => {
                   defaultOptions={false}
                   value={filters.warranty_object}
                   onChange={(selected) =>
-                    setFilters((prev) => ({ ...prev, warranty_object: selected }))
+                    setFilters((prev) => ({
+                      ...prev,
+                      warranty_object: selected,
+                    }))
                   }
                   placeholder="Buscar por nombre o CUI..."
                   noOptionsMessage={({ inputValue }) =>
                     !inputValue || inputValue.length < 2
-                      ? 'Ingrese al menos 2 caracteres para buscar'
-                      : 'No se encontraron objetos de garantía'
+                      ? "Ingrese al menos 2 caracteres para buscar"
+                      : "No se encontraron objetos de garantía"
                   }
-                  loadingMessage={() => 'Buscando...'}
+                  loadingMessage={() => "Buscando..."}
                   styles={selectStyles}
                 />
               </div>
@@ -683,18 +791,24 @@ const ReporteEjecutadas = () => {
 
         {/* Resultados */}
         {results && (
-          <div id="print-content" ref={printRef} className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div
+            id="print-content"
+            ref={printRef}
+            className="bg-white rounded-lg shadow-sm overflow-hidden"
+          >
             {/* Header de resultados */}
             <div className="px-6 py-4 border-b border-gray-200 bg-red-50">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Resultados
                   <span className="ml-2 text-sm font-normal text-gray-600">
-                    ({results.count} {results.count === 1 ? 'registro' : 'registros'})
+                    ({results.count}{" "}
+                    {results.count === 1 ? "registro" : "registros"})
                   </span>
                 </h2>
                 <span className="text-sm text-gray-600">
-                  Período: {formatDate(filters.fecha_desde)} al {formatDate(filters.fecha_hasta)}
+                  Período: {formatDate(filters.fecha_desde)} al{" "}
+                  {formatDate(filters.fecha_hasta)}
                 </span>
               </div>
             </div>
@@ -789,45 +903,55 @@ const ReporteEjecutadas = () => {
                           {index + 1}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item.letter_number_orig || '-'}
+                          {item.letter_number_orig || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                          {item.letter_type_description || '-'}
+                          {item.letter_type_description || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">
-                          {formatDate(item.issue_date) || '-'}
+                          {formatDate(item.issue_date) || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                          <span className="block">{formatDate(item.validity_start_orig) || '-'}</span>
+                          <span className="block">
+                            {formatDate(item.validity_start_orig) || "-"}
+                          </span>
                           <span className="block text-gray-500">
-                            {formatDate(item.validity_end_orig) || '-'}
+                            {formatDate(item.validity_end_orig) || "-"}
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                          {item.financial_entity_description_orig || '-'}
+                          {item.financial_entity_description_orig || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          <span className="block font-medium">{item.contractor_ruc || '-'}</span>
+                          <span className="block font-medium">
+                            {item.contractor_ruc || "-"}
+                          </span>
                           <span className="block text-gray-500 text-xs">
-                            {item.contractor_business_name || '-'}
+                            {item.contractor_business_name || "-"}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
-                          <div className="truncate" title={item.warranty_object_description}>
+                          <div
+                            className="truncate"
+                            title={item.warranty_object_description}
+                          >
                             {item.warranty_object_cui && (
                               <span className="text-xs text-gray-400 block">
                                 CUI: {item.warranty_object_cui}
                               </span>
                             )}
-                            {item.warranty_object_description || '-'}
+                            {item.warranty_object_description || "-"}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-600">
-                          {item.symbol_orig || 'S/.'}{' '}
-                          {parseFloat(item.amount_orig || 0).toLocaleString('es-PE', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {item.symbol_orig || "S/."}{" "}
+                          {parseFloat(item.amount_orig || 0).toLocaleString(
+                            "es-PE",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -843,9 +967,3 @@ const ReporteEjecutadas = () => {
 };
 
 export default ReporteEjecutadas;
-
-
-
-
-
-
