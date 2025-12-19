@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { toast } from 'sonner';
-import AsyncSelect from 'react-select/async';
-import api from '../services/api';
-import Layout from '../components/Layout';
+import React, { useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
+import AsyncSelect from "react-select/async";
+import api from "../services/api";
+import Layout from "../components/Layout";
 
 const ReporteCertificacion = () => {
   // Estados para filtros
@@ -24,7 +24,7 @@ const ReporteCertificacion = () => {
     }
 
     try {
-      const response = await api.get('/warranty-objects/', {
+      const response = await api.get("/warranty-objects/", {
         params: {
           search: inputValue.trim(),
           page_size: 20,
@@ -38,7 +38,7 @@ const ReporteCertificacion = () => {
         data: wo,
       }));
     } catch (error) {
-      console.error('Error al buscar objetos de garantía:', error);
+      console.error("Error al buscar objetos de garantía:", error);
       return [];
     }
   };
@@ -64,7 +64,7 @@ const ReporteCertificacion = () => {
     }
 
     try {
-      const response = await api.get('/contractors/', {
+      const response = await api.get("/contractors/", {
         params: {
           search: inputValue.trim(),
           page_size: 20,
@@ -78,7 +78,7 @@ const ReporteCertificacion = () => {
         data: contractor,
       }));
     } catch (error) {
-      console.error('Error al buscar contratistas:', error);
+      console.error("Error al buscar contratistas:", error);
       return [];
     }
   };
@@ -102,18 +102,18 @@ const ReporteCertificacion = () => {
     if (e) e.preventDefault();
 
     if (!selectedWarrantyObject) {
-      toast.error('Debe seleccionar un objeto de garantía');
+      toast.error("Debe seleccionar un objeto de garantía");
       return;
     }
 
     if (!selectedContractor) {
-      toast.error('Debe seleccionar un contratista');
+      toast.error("Debe seleccionar un contratista");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.get('/warranties/certificacion/', {
+      const response = await api.get("/warranties/certificacion/", {
         params: {
           warranty_object_id: selectedWarrantyObject.value,
           contractor_id: selectedContractor.value,
@@ -122,13 +122,15 @@ const ReporteCertificacion = () => {
       setResults(response.data);
 
       if (response.data.count === 0) {
-        toast.info('No se encontraron cartas fianza para esta combinación');
+        toast.info("No se encontraron cartas fianza para esta combinación");
       } else {
         toast.success(`Se encontraron ${response.data.count} carta(s) fianza`);
       }
     } catch (error) {
-      console.error('Error al buscar:', error);
-      toast.error(error.response?.data?.error || 'Error al realizar la búsqueda');
+      console.error("Error al buscar:", error);
+      toast.error(
+        error.response?.data?.error || "Error al realizar la búsqueda"
+      );
     } finally {
       setLoading(false);
     }
@@ -143,36 +145,37 @@ const ReporteCertificacion = () => {
 
   // Formatear fecha para mostrar
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    const [year, month, day] = dateStr.split('-');
+    if (!dateStr) return "-";
+    const [year, month, day] = dateStr.split("-");
     return `${day}/${month}/${year}`;
   };
 
   // Función para determinar si es estado activo
   const isActiveStatus = (status) => {
-    const activeStatuses = ['Emisión', 'Emision', 'Renovación', 'Renovacion', 'Ampliación', 'Ampliacion', 'Reducción', 'Reduccion'];
-    return activeStatuses.some(s => status?.toLowerCase().includes(s.toLowerCase()));
+    // const activeStatuses = ['Emisión', 'Emision', 'Renovación', 'Renovacion', 'Ampliación', 'Ampliacion', 'Reducción', 'Reduccion'];
+    // return activeStatuses.some(s => status?.toLowerCase().includes(s.toLowerCase()));
+    return true;
   };
 
   // Manejar impresión - Formato A4 Vertical
   const handlePrint = () => {
     if (!results || results.count === 0) {
-      toast.warning('No hay datos para imprimir');
+      toast.warning("No hay datos para imprimir");
       return;
     }
 
     const now = new Date();
-    const fechaHora = now.toLocaleString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+    const fechaHora = now.toLocaleString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
 
     // Crear contenido de impresión - Formato A4 Vertical
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -306,6 +309,20 @@ const ReporteCertificacion = () => {
             font-size: 10px;
             color: #333;
           }
+          .signature-section {
+            margin-top: 120px;
+            text-align: center;
+          }
+          .signature-line {
+            width: 250px;
+            border-top: 1px solid #16a34a;
+            margin: 0 auto 10px auto;
+          }
+          .signature-text {
+            font-size: 11px;
+            color: #16a34a;
+            font-weight: 600;
+          }
           @media print {
             body { 
               -webkit-print-color-adjust: exact; 
@@ -321,7 +338,9 @@ const ReporteCertificacion = () => {
         <div class="container">
           <div class="header">
             <div class="logo-section">
-              <img src="${window.location.origin}/images/logo-unf.png" alt="Logo UNF" onerror="this.style.display='none'"/>
+              <img src="${
+                window.location.origin
+              }/images/logo-unf.png" alt="Logo UNF" onerror="this.style.display='none'"/>
               <div class="institution-name">
                 UNIVERSIDAD NACIONAL<br/>DE FRONTERA
               </div>
@@ -334,17 +353,27 @@ const ReporteCertificacion = () => {
           <div class="info-section">
             <div class="info-row">
               <span class="info-label">CUI:</span>
-              <span class="info-value">${results.warranty_object_cui || 'Sin CUI'} - ${results.warranty_object_description}</span>
+              <span class="info-value">${
+                results.warranty_object_cui || "Sin CUI"
+              } - ${results.warranty_object_description}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Contratista:</span>
-              <span class="info-value">${results.contractor_ruc} - ${results.contractor_business_name}</span>
+              <span class="info-value">${results.contractor_ruc} - ${
+      results.contractor_business_name
+    }</span>
             </div>
           </div>
           
           <div class="content">
             <p class="certification-text">
-              Esta Jefatura certifica la vigencia y custodia de las Carta Fianza que garantiza la obra con CUI ${results.warranty_object_cui || 'Sin CUI'} - ${results.warranty_object_description}, a cargo del contratista ${results.contractor_ruc} - ${results.contractor_business_name}, según detalle:
+              Esta Jefatura certifica la vigencia y custodia de las Carta Fianza que garantiza la obra con CUI ${
+                results.warranty_object_cui || "Sin CUI"
+              } - ${
+      results.warranty_object_description
+    }, a cargo del contratista ${results.contractor_ruc} - ${
+      results.contractor_business_name
+    }, según detalle:
             </p>
             
             <table>
@@ -358,15 +387,30 @@ const ReporteCertificacion = () => {
                 </tr>
               </thead>
               <tbody>
-                ${results.results.map((item) => `
+                ${results.results
+                  .map(
+                    (item) => `
                   <tr>
-                    <td>${item.letter_types_description || '-'}</td>
-                    <td>${item.letter_number || '-'}</td>
-                    <td class="text-right">${item.symbol || 'S/.'} ${parseFloat(item.amount || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td class="text-center">${formatDate(item.validity_end)}</td>
-                    <td class="text-center ${isActiveStatus(item.warranty_statuses_last_description) ? 'status-active' : 'status-inactive'}">${item.warranty_statuses_last_description || '-'}</td>
+                    <td>${item.letter_types_description || "-"}</td>
+                    <td>${item.letter_number || "-"}</td>
+                    <td class="text-right">${item.symbol || "S/."} ${parseFloat(
+                      item.amount || 0
+                    ).toLocaleString("es-PE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}</td>
+                    <td class="text-center">${formatDate(
+                      item.validity_end
+                    )}</td>
+                    <td class="text-center ${
+                      isActiveStatus(item.warranty_statuses_last_description)
+                        ? "status-active"
+                        : "status-inactive"
+                    }">${item.warranty_statuses_last_description || "-"}</td>
                   </tr>
-                `).join('')}
+                `
+                  )
+                  .join("")}
               </tbody>
             </table>
           </div>
@@ -374,6 +418,11 @@ const ReporteCertificacion = () => {
           <div class="footer">
             Piura, ${fechaHora}
           </div>
+
+           <div class="signature-section">
+          <div class="signature-line"></div>
+          <div class="signature-text">Firma del Responsable</div>
+        </div>
         </div>
       </body>
       </html>
@@ -392,16 +441,20 @@ const ReporteCertificacion = () => {
   const selectStyles = {
     control: (base) => ({
       ...base,
-      padding: '2px',
-      borderColor: '#d1d5db',
-      '&:hover': {
-        borderColor: '#2563eb',
+      padding: "2px",
+      borderColor: "#d1d5db",
+      "&:hover": {
+        borderColor: "#2563eb",
       },
     }),
     option: (base, state) => ({
       ...base,
-      backgroundColor: state.isSelected ? '#2563eb' : state.isFocused ? '#dbeafe' : 'white',
-      color: state.isSelected ? 'white' : '#374151',
+      backgroundColor: state.isSelected
+        ? "#2563eb"
+        : state.isFocused
+        ? "#dbeafe"
+        : "white",
+      color: state.isSelected ? "white" : "#374151",
     }),
   };
 
@@ -415,7 +468,8 @@ const ReporteCertificacion = () => {
               Certificación de Cartas Fianza
             </h1>
             <p className="text-gray-600 mt-1">
-              Genera un certificado de las cartas fianza por objeto de garantía y contratista
+              Genera un certificado de las cartas fianza por objeto de garantía
+              y contratista
             </p>
           </div>
         </div>
@@ -439,10 +493,10 @@ const ReporteCertificacion = () => {
                   placeholder="Buscar por CUI o descripción..."
                   noOptionsMessage={({ inputValue }) =>
                     !inputValue || inputValue.length < 2
-                      ? 'Ingrese al menos 2 caracteres para buscar'
-                      : 'No se encontraron objetos de garantía'
+                      ? "Ingrese al menos 2 caracteres para buscar"
+                      : "No se encontraron objetos de garantía"
                   }
-                  loadingMessage={() => 'Buscando...'}
+                  loadingMessage={() => "Buscando..."}
                   styles={selectStyles}
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -465,10 +519,10 @@ const ReporteCertificacion = () => {
                   placeholder="Buscar por RUC o razón social..."
                   noOptionsMessage={({ inputValue }) =>
                     !inputValue || inputValue.length < 2
-                      ? 'Ingrese al menos 2 caracteres para buscar'
-                      : 'No se encontraron contratistas'
+                      ? "Ingrese al menos 2 caracteres para buscar"
+                      : "No se encontraron contratistas"
                   }
-                  loadingMessage={() => 'Buscando...'}
+                  loadingMessage={() => "Buscando..."}
                   styles={selectStyles}
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -481,7 +535,9 @@ const ReporteCertificacion = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={loading || !selectedWarrantyObject || !selectedContractor}
+                disabled={
+                  loading || !selectedWarrantyObject || !selectedContractor
+                }
                 className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -582,18 +638,26 @@ const ReporteCertificacion = () => {
             </h3>
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div className="bg-white rounded p-3 border border-blue-100">
-                <span className="text-gray-500 font-medium">Objeto de Garantía:</span>
+                <span className="text-gray-500 font-medium">
+                  Objeto de Garantía:
+                </span>
                 <p className="text-gray-900 mt-1">
-                  <span className="font-semibold">CUI:</span> {results.warranty_object_cui || 'Sin CUI'}
+                  <span className="font-semibold">CUI:</span>{" "}
+                  {results.warranty_object_cui || "Sin CUI"}
                 </p>
-                <p className="text-gray-700 text-xs mt-1">{results.warranty_object_description}</p>
+                <p className="text-gray-700 text-xs mt-1">
+                  {results.warranty_object_description}
+                </p>
               </div>
               <div className="bg-white rounded p-3 border border-blue-100">
                 <span className="text-gray-500 font-medium">Contratista:</span>
                 <p className="text-gray-900 mt-1">
-                  <span className="font-semibold">RUC:</span> {results.contractor_ruc}
+                  <span className="font-semibold">RUC:</span>{" "}
+                  {results.contractor_ruc}
                 </p>
-                <p className="text-gray-700 text-xs mt-1">{results.contractor_business_name}</p>
+                <p className="text-gray-700 text-xs mt-1">
+                  {results.contractor_business_name}
+                </p>
               </div>
             </div>
           </div>
@@ -608,7 +672,8 @@ const ReporteCertificacion = () => {
                 <h2 className="text-lg font-semibold text-gray-900">
                   Cartas Fianza
                   <span className="ml-2 text-sm font-normal text-gray-600">
-                    ({results.count} {results.count === 1 ? 'registro' : 'registros'})
+                    ({results.count}{" "}
+                    {results.count === 1 ? "registro" : "registros"})
                   </span>
                 </h2>
               </div>
@@ -633,7 +698,8 @@ const ReporteCertificacion = () => {
                   No se encontraron cartas fianza
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  No hay cartas fianza para esta combinación de objeto de garantía y contratista
+                  No hay cartas fianza para esta combinación de objeto de
+                  garantía y contratista
                 </p>
               </div>
             ) : (
@@ -675,19 +741,25 @@ const ReporteCertificacion = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {results.results.map((item) => (
-                      <tr key={item.warranty_histories_id} className="hover:bg-blue-50">
+                      <tr
+                        key={item.warranty_histories_id}
+                        className="hover:bg-blue-50"
+                      >
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {item.letter_types_description || '-'}
+                          {item.letter_types_description || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {item.letter_number || '-'}
+                          {item.letter_number || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-blue-600">
-                          {item.symbol || 'S/.'}{' '}
-                          {parseFloat(item.amount || 0).toLocaleString('es-PE', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {item.symbol || "S/."}{" "}
+                          {parseFloat(item.amount || 0).toLocaleString(
+                            "es-PE",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-600">
                           {formatDate(item.validity_end)}
@@ -695,12 +767,14 @@ const ReporteCertificacion = () => {
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              isActiveStatus(item.warranty_statuses_last_description)
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
+                              isActiveStatus(
+                                item.warranty_statuses_last_description
+                              )
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {item.warranty_statuses_last_description || '-'}
+                            {item.warranty_statuses_last_description || "-"}
                           </span>
                         </td>
                       </tr>
@@ -717,4 +791,3 @@ const ReporteCertificacion = () => {
 };
 
 export default ReporteCertificacion;
-
